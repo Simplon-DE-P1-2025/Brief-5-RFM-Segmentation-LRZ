@@ -1,0 +1,129 @@
+version: '3.8'
+
+# Variables communes réutilisées dans plusieurs services
+# uid de l'utilisateur airflow dans l'image officielle (50000)
+# Le groupe 0 (root) est nécessaire pour que airflow puisse écrire dans les volumes montés
+x-airflow-user: &airflow-user "50000:0"
+
+x-airflow-env: &airflow-env
+  AIRFLOW__CORE__EXECUTOR: LocalExecutor
+  AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
+  AIRFLOW__CORE__LOAD_EXAMPLES: 'false'
+  # Connexion vers la base de données métier (RFM)
+  RFM_DB_CONN: postgresql+psycopg2://rfm_user:rfm_pass@postgres/rfm_db
+
+services:
+
+  # ─────────────────────────────────────────
+  # Service 1 : PostgreSQL
+  # Héberge 2 bases : airflow (méta) + rfm_db (données métier)
+  # ─────────────────────────────────────────
+  postgres:
+    image: postgres:15
+    container_name: rfm_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: airflow
+      POSTGRES_PASSWORD: airflow
+      POSTGRES_DB: airflow
+      # Script d'init pour créer la base rfm_db et son user
+      POSTGRES_MULTIPLE_DATABASES: rfm_db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "airflow"]
+      interval: 10s
+      retries: 5
+
+  # ─────────────────────────────────────────
+  # Service 2 : Airflow — initialisation BDD
+  # Tourne une seule fois au démarrage
+  # ─────────────────────────────────────────
+  airflow-init:
+    image: apache/airflow:2.9.1
+    container_name: rfm_airflow_init
+    user: *airflow-user
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      <<: *airflow-env
+    entrypoint: >
+      bash -c "
+        airflow db migrate &&
+        airflow users create
+          --username admin
+          --password admin
+          --firstname Admin
+          --lastname User
+          --role Admin
+          --email admin@example.com
+      "
+    restart: on-failure
+
+  # ─────────────────────────────────────────
+  # Service 3 : Airflow Webserver (UI)
+  # Accessible sur http://localhost:8080
+  # ─────────────────────────────────────────
+  airflow-webserver:
+    image: apache/airflow:2.9.1
+    container_name: rfm_airflow_webserver
+    user: *airflow-user
+    depends_on:
+      airflow-init:
+        condition: service_completed_successfully
+    environment:
+      <<: *airflow-env
+    volumes:
+      - ./dags:/opt/airflow/dags        # nos DAGs
+      - ./etl:/opt/airflow/etl          # scripts ETL accessibles dans les DAGs
+      - ./data:/opt/airflow/data        # dataset .xlsx
+    ports:
+      - "8080:8080"
+    command: webserver
+    restart: unless-stopped
+
+  # ─────────────────────────────────────────
+  # Service 4 : Airflow Scheduler
+  # Surveille et déclenche les DAGs
+  # ─────────────────────────────────────────
+  airflow-scheduler:
+    image: apache/airflow:2.9.1
+    container_name: rfm_airflow_scheduler
+    user: *airflow-user
+    depends_on:
+      airflow-init:
+        condition: service_completed_successfully
+    environment:
+      <<: *airflow-env
+    volumes:
+      - ./dags:/opt/airflow/dags
+      - ./etl:/opt/airflow/etl
+      - ./data:/opt/airflow/data
+    command: scheduler
+    restart: unless-stopped
+
+  # ─────────────────────────────────────────
+  # Service 5 : ETL (image custom)
+  # Utilisé pour tests manuels hors Airflow
+  # ─────────────────────────────────────────
+  etl:
+    build: .
+    container_name: rfm_etl
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      RFM_DB_CONN: postgresql+psycopg2://rfm_user:rfm_pass@postgres/rfm_db
+    volumes:
+      - ./etl:/app/etl
+      - ./data:/app/data
+    # Pas de restart : s'exécute à la demande via `docker compose run etl python etl/ingest.py`
+    profiles:
+      - manual
+
+volumes:
+  postgres_data:

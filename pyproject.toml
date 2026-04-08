@@ -1,0 +1,13 @@
+[project]
+name = "rfm-segmentation"
+version = "0.1.0"
+description = "Pipeline ETL RFM orchestrée avec Airflow et PostgreSQL"
+requires-python = ">=3.11"
+
+dependencies = [
+    "pandas==2.2.2",
+    "openpyxl==3.1.2",       # lecture des fichiers .xlsx (Online Retail II)
+    "psycopg2-binary==2.9.9", # connecteur PostgreSQL
+    "python-dotenv==1.0.1",   # variables d'environnement
+    "sqlalchemy==1.4.52",     # requis par pandas.to_sql() + compatible Airflow 2.x
+]
