@@ -83,8 +83,7 @@ def insert_to_postgres(df: pd.DataFrame, conn_str: str, table: str) -> None:
     Insère le DataFrame dans PostgreSQL.
     - if_exists='replace' : recrée la table à chaque ingestion (idempotent)
     - chunksize=5000      : évite les timeouts sur les gros volumes
-    """
-    print(f"[ingest] Connexion à PostgreSQL...")
+    """    print(f"[ingest] Connexion à PostgreSQL...")
     engine = create_engine(conn_str)
 
     # Vérification de la connexion avant l'insertion
