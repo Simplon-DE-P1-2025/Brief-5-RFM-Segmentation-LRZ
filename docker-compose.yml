@@ -125,5 +125,25 @@ services:
     profiles:
       - manual
 
+  dashboard:
+    build:
+      context: .
+      dockerfile: dashboard/Dockerfile
+    container_name: rfm_dashboard
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      RFM_DB_CONN: postgresql+psycopg2://rfm_user:rfm_pass@postgres/rfm_db
+    ports:
+      - "8501:8501"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8501/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
 volumes:
   postgres_data:
