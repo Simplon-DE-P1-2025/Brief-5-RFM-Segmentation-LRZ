@@ -208,3 +208,8 @@ __marimo__/
 
 # Dossier perso
 Romain/
+
+.codex
+
+logs/*
+!logs/.gitkeep
