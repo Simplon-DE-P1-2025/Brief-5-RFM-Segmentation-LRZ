@@ -363,7 +363,7 @@ def create_app() -> Flask:
         kpi_bar = queries.get_kpi_bar(engine)
         seg_kpi_df = queries.get_table_kpi_per_segment(engine)
         seg_dist_df = queries.get_segment_distribution(engine)
-        rf_df = queries.get_rf_heatmap(engine)
+        bubble_df = queries.get_bubble_segments(engine)
         movements_df = queries.get_macro_movements(engine)
         history = queries.get_history_volumes(engine)
 
@@ -375,9 +375,9 @@ def create_app() -> Flask:
             segment_colors=charts.SEGMENT_COLORS,
             macro_colors=charts.MACRO_COLORS,
             airflow_url=os.environ.get("AIRFLOW_PUBLIC_URL", "http://localhost:8080"),
-            treemap_fig=charts.build_treemap(seg_dist_df),
-            heatmap_fig=charts.build_rf_heatmap(rf_df),
-            movements_pct_fig=charts.build_macro_movements_pct(movements_df),
+            treemap_fig=charts.build_treemap(seg_dist_df, dark=True),
+            bubble_fig=charts.build_bubble_segments(bubble_df, dark=True),
+            movements_pct_fig=charts.build_macro_movements_pct(movements_df, dark=True),
         )
 
     @app.route("/presentation-ve")
