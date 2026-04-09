@@ -10,4 +10,5 @@ dependencies = [
     "psycopg2-binary==2.9.9", # connecteur PostgreSQL
     "python-dotenv==1.0.1",   # variables d'environnement
     "sqlalchemy==1.4.52",     # requis par pandas.to_sql() + compatible Airflow 2.x
+    "soda-core-postgres==3.5.0"     # réalisations de tests et controles sur les données
 ]
