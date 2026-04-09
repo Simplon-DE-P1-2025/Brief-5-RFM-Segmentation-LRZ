@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+{% set active_page = "cohorts" %}
+{% block title %}RFM — Cohorts{% endblock %}
+
+{% block content %}
+<main class="container-fluid py-4">
+
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+      <h1 class="h3 fw-bold mb-0">RFM Cohorts</h1>
+      <p class="text-muted small mb-0">
+        Quelle cohorte d'acquisition a fini par devenir LOYAL, SLEEP ou LOST ?
+      </p>
+    </div>
+    <span class="badge bg-secondary fs-6">Online Retail II — UK 2009-2011</span>
+  </div>
+
+  {# ─── KPI bar global réutilisé ───────────────────────────────── #}
+  {% include "_kpi_bar.html" %}
+
+  {# ─── Acquisitions trend line ────────────────────────────────── #}
+  <section class="row g-3 mb-4">
+    <div class="col-12">
+      <div class="card shadow-sm border-0">
+        <div class="card-header bg-white d-flex justify-content-between align-items-center">
+          <div>
+            <span class="fw-semibold">User Acquisitions Trend Line</span>
+            <small class="text-muted ms-2">— nouveaux clients par mois (1ère commande)</small>
+          </div>
+          <div class="badge bg-light text-dark">
+            Total : <strong>{{ "{:,}".format(kpi_bar.total_users).replace(",", " ") }}</strong> clients
+          </div>
+        </div>
+        <div class="card-body p-2">
+          <div id="acquisitions_trend" style="height: 360px;"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  {# ─── Pivot table cohort × macro_segment ─────────────────────── #}
+  <section class="row g-3">
+    <div class="col-12">
+      <div class="card shadow-sm border-0">
+        <div class="card-header bg-white">
+          <span class="fw-semibold">KPIs by User Acquisition Month</span>
+          <small class="text-muted ms-2">
+            — % macro segment courant par cohorte d'acquisition
+          </small>
+        </div>
+        <div class="card-body p-0">
+          <table class="table table-sm table-hover align-middle mb-0">
+            <thead class="table-light small text-uppercase text-muted">
+              <tr>
+                <th class="ps-3">Acquisition month</th>
+                <th class="text-end">User acquisitions</th>
+                <th class="text-end">% Loyal</th>
+                <th class="text-end">% Promising</th>
+                <th class="text-end">% Sleep</th>
+                <th class="text-end pe-3">% Lost</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for r in cohort_pivot %}
+              <tr>
+                <td class="ps-3">{{ r.acquisition_month.strftime("%b %Y") }}</td>
+                <td class="text-end">{{ "{:,}".format(r.user_acquisitions).replace(",", " ") }}</td>
+                <td class="text-end">
+                  <span class="cohort-bar" style="background:rgba(44,122,75,{{ (r.pct_loyal / 100.0) | round(2) }})">
+                    {{ r.pct_loyal }}%
+                  </span>
+                </td>
+                <td class="text-end">
+                  <span class="cohort-bar" style="background:rgba(48,96,160,{{ (r.pct_promising / 100.0) | round(2) }})">
+                    {{ r.pct_promising }}%
+                  </span>
+                </td>
+                <td class="text-end">
+                  <span class="cohort-bar" style="background:rgba(107,76,154,{{ (r.pct_sleep / 100.0) | round(2) }})">
+                    {{ r.pct_sleep }}%
+                  </span>
+                </td>
+                <td class="text-end pe-3">
+                  <span class="cohort-bar" style="background:rgba(201,91,39,{{ (r.pct_lost / 100.0) | round(2) }})">
+                    {{ r.pct_lost }}%
+                  </span>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</main>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  (function() {
+    var trend = {{ acquisitions_trend_fig | safe }};
+    var cfg = {responsive: true, displaylogo: false,
+               modeBarButtonsToRemove: ['lasso2d', 'select2d']};
+    Plotly.newPlot('acquisitions_trend', trend.data, trend.layout, cfg);
+  })();
+</script>
+{% endblock %}

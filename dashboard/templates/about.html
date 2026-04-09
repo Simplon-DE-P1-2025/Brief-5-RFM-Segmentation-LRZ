@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+{% set active_page = "about" %}
+{% block title %}RFM — About The Data{% endblock %}
+
+{% block content %}
+<main class="container py-5">
+
+  <div class="row justify-content-center">
+    <div class="col-lg-9">
+
+      <h1 class="h3 fw-bold mb-4">About The Data</h1>
+
+      <div class="card shadow-sm border-0 mb-4">
+        <div class="card-body">
+          <h2 class="h5 fw-bold">Dataset</h2>
+          <p>
+            Le dashboard est construit sur le dataset public
+            <strong>Online Retail II</strong>, mis à disposition par l'UCI
+            Machine Learning Repository
+            (<a href="https://archive.ics.uci.edu/dataset/502/online+retail+ii"
+                target="_blank" rel="noopener">archive.ics.uci.edu</a>).
+            Il contient les transactions d'un e-commerce britannique
+            spécialisé dans les cadeaux et articles occasion, sur la
+            période <strong>1ᵉʳ décembre 2009 → 9 décembre 2011</strong>.
+          </p>
+
+          <div class="row g-3 my-3">
+            <div class="col-md-3 col-6">
+              <div class="border rounded p-3 text-center bg-light">
+                <div class="text-muted small">Lignes brutes</div>
+                <div class="h4 fw-bold mb-0">1 067 371</div>
+              </div>
+            </div>
+            <div class="col-md-3 col-6">
+              <div class="border rounded p-3 text-center bg-light">
+                <div class="text-muted small">Ventes propres</div>
+                <div class="h4 fw-bold mb-0">802 637</div>
+              </div>
+            </div>
+            <div class="col-md-3 col-6">
+              <div class="border rounded p-3 text-center bg-light">
+                <div class="text-muted small">Clients RFM</div>
+                <div class="h4 fw-bold mb-0">5 852</div>
+              </div>
+            </div>
+            <div class="col-md-3 col-6">
+              <div class="border rounded p-3 text-center bg-light">
+                <div class="text-muted small">Pays distincts</div>
+                <div class="h4 fw-bold mb-0">41</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card shadow-sm border-0 mb-4">
+        <div class="card-body">
+          <h2 class="h5 fw-bold">Pipeline de traitement</h2>
+          <p>
+            Pattern <strong>lakehouse en 3 schémas</strong>
+            (<code>raw</code> → <code>clean</code> → <code>analytics</code>)
+            orchestré par un DAG <strong>Apache Airflow</strong> en 4 tasks
+            séquentielles :
+          </p>
+          <ol class="mb-3">
+            <li><code>ingest_xlsx</code> — XLSX → CSV temporaire → COPY FROM STDIN dans <code>raw.online_retail</code></li>
+            <li><code>transform_clean_rfm</code> — cascade exclusive de cleaning (4 buckets) puis calcul RFM via <code>NTILE(5)</code></li>
+            <li><code>load_segments</code> — assignation des 11 segments via <code>UPDATE CASE</code></li>
+            <li><code>compute_rfm_history</code> — extension snapshot mensuel (Sprint 5)</li>
+          </ol>
+          <p class="mb-0">
+            Stack : <strong>Postgres 15</strong>, <strong>Python 3.11</strong>,
+            <strong>Apache Airflow 2.9</strong>, <strong>Flask + reveal.js</strong>,
+            <strong>Plotly</strong>, le tout conteneurisé via
+            <strong>Docker Compose</strong>.
+          </p>
+        </div>
+      </div>
+
+      <div class="card shadow-sm border-0 mb-4">
+        <div class="card-body">
+          <h2 class="h5 fw-bold">Cleaning : cascade exclusive en 4 buckets</h2>
+          <p>
+            La cascade route les lignes métier vers <strong>un seul</strong>
+            bucket grâce à un ordre strictement décroissant en spécificité.
+            Elle n'est toutefois pas exhaustive : les transactions anonymes
+            et autres anomalies hors scope RFM v1 restent écartées.
+          </p>
+          <ul class="mb-3">
+            <li><code>clean.stock_movements</code> — mouvements internes (description NULL + customer_id NULL + price = 0)</li>
+            <li><code>clean.cancellations</code> — factures préfixées <code>C*</code></li>
+            <li><code>clean.non_product_lines</code> — codes produits techniques (POST, DOT, BANK CHARGES, ADJUST, etc.)</li>
+            <li><code>clean.sales</code> — ventes exploitables pour le RFM (customer_id renseigné, quantité/prix &gt; 0)</li>
+          </ul>
+          <p class="mb-0 small text-muted">
+            Volumétrie routée : ~4 382 / ~19 494 / ~4 805 / ~802 637 lignes.
+            Environ 236 k lignes restent hors <code>clean.*</code>, surtout
+            des transactions anonymes sans <code>customer_id</code>.
+          </p>
+        </div>
+      </div>
+
+      <div class="card shadow-sm border-0 mb-4">
+        <div class="card-body">
+          <h2 class="h5 fw-bold">Inspiration</h2>
+          <p class="mb-0">
+            Le dashboard v2 s'inspire de la structure du
+            <a href="https://justdataplease.com/product/rfm-customer-segmentation-tutorial/2/dashboard/"
+               target="_blank" rel="noopener">dashboard RFM JustDataPlease</a>
+            (un Looker Studio embarqué construit sur les données d'une chaîne
+            de restaurants anonyme). 16 graphiques sur 18 ont été reproduits
+            sur Online Retail II avec quelques adaptations sur les bins
+            monétaires (calibrés sur nos percentiles 20/40/60/80 plutôt que
+            sur les seuils $ d'origine). Le détail de l'audit est dans
+            <code>docs/dashboard_v2_audit.md</code>.
+          </p>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</main>
+{% endblock %}

@@ -6,8 +6,12 @@ requires-python = ">=3.11"
 
 dependencies = [
     "pandas==2.2.2",
-    "openpyxl==3.1.2",       # lecture des fichiers .xlsx (Online Retail II)
+    "openpyxl==3.1.2", # lecture des fichiers .xlsx (Online Retail II)
     "psycopg2-binary==2.9.9", # connecteur PostgreSQL
-    "python-dotenv==1.0.1",   # variables d'environnement
-    "sqlalchemy==1.4.52",     # requis par pandas.to_sql() + compatible Airflow 2.x
+    "python-dotenv==1.0.1", # variables d'environnement
+    "sqlalchemy>=2.0,<3", # requis par pandas.to_sql() + compatible Airflow 2.x
+    "flask>=3.1.3",
+    "flask-caching>=2.3.1",
+    "plotly>=6.6.0",
+    "gunicorn>=25.3.0",
 ]

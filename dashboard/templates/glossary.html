@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+{% set active_page = "glossary" %}
+{% block title %}RFM — Glossary{% endblock %}
+
+{% block content %}
+<main class="container py-5">
+
+  <div class="row justify-content-center">
+    <div class="col-lg-10">
+
+      <h1 class="h3 fw-bold mb-4">Glossary</h1>
+      <p class="text-muted">
+        Définitions des métriques utilisées dans le dashboard, dans l'ordre d'apparition sur les pages.
+      </p>
+
+      <div class="card shadow-sm border-0">
+        <div class="card-body p-0">
+          <table class="table table-hover mb-0">
+            <thead class="table-light text-uppercase small text-muted">
+              <tr>
+                <th class="ps-3" style="width: 220px;">Métrique</th>
+                <th>Définition</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="ps-3"><strong>RFM</strong></td>
+                <td>Recency, Frequency, Monetary. Technique de segmentation client basée sur trois mesures du comportement d'achat : ancienneté de la dernière commande, fréquence et montant total dépensé.</td>
+              </tr>
+              <tr>
+                <td class="ps-3"><strong>Recency (R)</strong></td>
+                <td>Nombre de jours écoulés depuis la dernière facture du client, calculé à partir de la date de référence (dernière facture du dataset + 1 jour).</td>
+              </tr>
+              <tr>
+                <td class="ps-3"><strong>Frequency (F)</strong></td>
+                <td>Nombre de factures distinctes (<code>COUNT(DISTINCT invoice_id)</code>) attribuées au client sur toute la période du dataset.</td>
+              </tr>
+              <tr>
+                <td class="ps-3"><strong>Monetary (M)</strong></td>
+                <td>Somme totale dépensée par le client (<code>SUM(quantity × unit_price)</code>) sur toute la période. Exprimé en livres sterling (£).</td>
+              </tr>
+              <tr>
+                <td class="ps-3"><strong>R / F / M score</strong></td>
+                <td>Score quintile (1 à 5) attribué via <code>NTILE(5)</code> sur les valeurs brutes. Pour Recency, le score est inversé (<code>6 - NTILE</code>) pour que 5 = très récent.</td>
+              </tr>
+              <tr>
+                <td class="ps-3"><strong>RFM Segment</strong></td>
+                <td>Mapping lisible des combinaisons (R, F, M) vers 11 segments business : Champions, Loyal Customers, Potential Loyalist, Recent Customers, Promising, Need Attention, About to Sleep, At Risk, Cannot Lose Them, Hibernating, Lost.</td>
+              </tr>
+              <tr>
+                <td class="ps-3"><strong>Macro Segment</strong></td>
+                <td>Regroupement des 11 segments en 4 macro segments pour les vues d'évolution : <strong>A.LOYAL</strong> (Champions + Loyal + Potential Loyalist), <strong>B.PROMISING</strong> (Recent + Promising + Need Attention), <strong>C.SLEEP</strong> (About to Sleep + At Risk + Cannot Lose Them), <strong>D.LOST</strong> (Hibernating + Lost).</td>
+              </tr>
+              <tr>
+                <td class="ps-3"><strong>ADSLT</strong></td>
+                <td>Average Days Since Last Transaction. Moyenne des récences sur l'ensemble des clients (<code>AVG(recency)</code>).</td>
+              </tr>
+              <tr>
+                <td class="ps-3"><strong>ATPU</strong></td>
+                <td>Average Transactions Per User. Moyenne des fréquences (<code>AVG(frequency)</code>).</td>
+              </tr>
+              <tr>
+                <td class="ps-3"><strong>ARPU</strong></td>
+                <td>Average Revenue Per User. Moyenne des montants (<code>AVG(monetary)</code>).</td>
+              </tr>
+              <tr>
+                <td class="ps-3"><strong>ATV</strong></td>
+                <td>Average Transaction Value. Panier moyen (<code>SUM(line_amount) / COUNT(DISTINCT invoice_id)</code>).</td>
+              </tr>
+              <tr>
+                <td class="ps-3"><strong>% Users New</strong></td>
+                <td>Pourcentage de clients ayant exactement <strong>une</strong> facture et dont la récence est ≤ 90 jours.</td>
+              </tr>
+              <tr>
+                <td class="ps-3"><strong>% Users Returning</strong></td>
+                <td>Pourcentage de clients ayant <strong>au moins deux</strong> factures et dont la récence est ≤ 180 jours.</td>
+              </tr>
+              <tr>
+                <td class="ps-3"><strong>% Users Churned</strong></td>
+                <td>Pourcentage de clients dont la récence est <strong>strictement supérieure à 180 jours</strong>.</td>
+              </tr>
+              <tr>
+                <td class="ps-3"><strong>% One Timers</strong></td>
+                <td>Pourcentage de clients ayant exactement une facture (<code>frequency = 1</code>).</td>
+              </tr>
+              <tr>
+                <td class="ps-3"><strong>% Top Spenders</strong></td>
+                <td>Pourcentage de clients dans le quintile monétaire supérieur (<code>m_score = 5</code>).</td>
+              </tr>
+              <tr>
+                <td class="ps-3"><strong>Monetary bands (£)</strong></td>
+                <td>5 bandes monétaires fixes adaptées à notre distribution client : <code>0-300</code>, <code>301-1k</code>, <code>1k-3k</code>, <code>3k-10k</code> et <code>&gt;10k</code> livres sterling.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</main>
+{% endblock %}

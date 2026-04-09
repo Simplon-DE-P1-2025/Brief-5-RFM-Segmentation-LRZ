@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+{% block title %}RFM — Vue exploratoire{% endblock %}
+
+{% block content %}
+<main class="container-fluid py-4">
+
+  <!-- ─── KPI ──────────────────────────────────────────────────── -->
+  <section class="row g-3 mb-4">
+    <div class="col-md-3">
+      <div class="card kpi-card shadow-sm">
+        <div class="card-body">
+          <div class="text-muted text-uppercase small">Clients</div>
+          <div class="display-6 fw-bold">{{ "{:,}".format(kpis.total_customers).replace(",", " ") }}</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card kpi-card shadow-sm">
+        <div class="card-body">
+          <div class="text-muted text-uppercase small">Récence moyenne</div>
+          <div class="display-6 fw-bold">{{ kpis.avg_recency }} <small class="fs-5">jours</small></div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card kpi-card shadow-sm">
+        <div class="card-body">
+          <div class="text-muted text-uppercase small">Monetary moyen</div>
+          <div class="display-6 fw-bold">{{ "{:,.0f}".format(kpis.avg_monetary).replace(",", " ") }} <small class="fs-5">£</small></div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card kpi-card shadow-sm">
+        <div class="card-body">
+          <div class="text-muted text-uppercase small">Segments distincts</div>
+          <div class="display-6 fw-bold">{{ kpis.n_segments }}</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── Charts ──────────────────────────────────────────────── -->
+  <section class="row g-3 mb-4">
+    <div class="col-lg-7">
+      <div class="card shadow-sm">
+        <div class="card-header">Distribution des segments (taille = effectif, couleur = monetary moyen)</div>
+        <div class="card-body p-2">
+          <div id="treemap" style="height: 480px;"></div>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-5">
+      <div class="card shadow-sm">
+        <div class="card-header">Heatmap R × F</div>
+        <div class="card-body p-2">
+          <div id="heatmap" style="height: 480px;"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="row g-3 mb-4">
+    <div class="col-12">
+      <div class="card shadow-sm">
+        <div class="card-header">Monetary par segment (échelle log)</div>
+        <div class="card-body p-2">
+          <div id="boxplot" style="height: 420px;"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── Table filtrable HTMX ─────────────────────────────────── -->
+  <section class="row g-3">
+    <div class="col-12">
+      <div class="card shadow-sm">
+        <div class="card-header d-flex flex-wrap align-items-center gap-3">
+          <span class="fw-semibold">Top clients (limite 500, tri par monetary décroissant)</span>
+          <form class="ms-auto d-flex align-items-center gap-2"
+                hx-get="/api/segments"
+                hx-target="#table-segments"
+                hx-trigger="change from:select[name='segments']"
+                hx-swap="innerHTML">
+            <label for="segments" class="form-label mb-0 small text-muted">Filtrer&nbsp;:</label>
+            <select id="segments" name="segments" class="form-select form-select-sm" multiple size="3" style="min-width: 240px;">
+              {% for seg in all_segments %}
+                <option value="{{ seg }}">{{ seg }}</option>
+              {% endfor %}
+            </select>
+          </form>
+        </div>
+        <div id="table-segments">
+          {% include "_table_segments.html" %}
+        </div>
+      </div>
+    </div>
+  </section>
+
+</main>
+{% endblock %}
+
+{% block extra_js %}
+  <!-- HTMX vendored -->
+  <script src="{{ url_for('static', filename='js/htmx.min.js') }}"></script>
+
+  <!-- Rendu Plotly -->
+  <script>
+    (function() {
+      var treemap = {{ treemap_fig | safe }};
+      var heatmap = {{ heatmap_fig | safe }};
+      var boxplot = {{ boxplot_fig | safe }};
+      var cfg = {responsive: true, displaylogo: false,
+                 modeBarButtonsToRemove: ['lasso2d', 'select2d']};
+      Plotly.newPlot('treemap', treemap.data, treemap.layout, cfg);
+      Plotly.newPlot('heatmap', heatmap.data, heatmap.layout, cfg);
+      Plotly.newPlot('boxplot', boxplot.data, boxplot.layout, cfg);
+    })();
+  </script>
+{% endblock %}

@@ -165,7 +165,7 @@ labeled AS (
             WHEN r_score::TEXT || f_score::TEXT || m_score::TEXT IN ('111','112','121','131','141','151')
                 THEN 'Lost'
 
-            ELSE 'Unclassified'                                                     'Lost'
+            ELSE 'Unclassified'
         END AS rfm_segment
     FROM scored
 )

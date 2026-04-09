@@ -1,0 +1,628 @@
+{% extends "base.html" %}
+{% block title %}RFM — Présentation{% endblock %}
+
+{% block extra_css %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='js/reveal/reset.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='js/reveal/reveal.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='js/reveal/theme/black.css') }}">
+  <style>
+    /* Cache la navbar Bootstrap : reveal.js prend tout l'écran */
+    body > nav.navbar { display: none; }
+
+    /* Fond sombre pour le thème reveal.js black.css.
+       Bootstrap impose body.bg-light { background: #f8f9fa !important }
+       qui rend invisible le texte blanc du thème — on bat avec un
+       sélecteur plus spécifique + !important. */
+    body.bg-light, body { background: #191919 !important; }
+    .reveal-viewport { background: #191919 !important; }
+
+    .reveal h1, .reveal h2 { text-transform: none; color: #fff; }
+    .reveal .footnote { font-size: 0.5em; color: #888; }
+    .reveal .accent  { color: #4dabf7; }
+    .reveal .pill {
+      display: inline-block; padding: 0.2em 0.6em; border-radius: 999px;
+      font-size: 0.55em; background: #2c2c2c; color: #ccc; margin: 0 0.2em;
+    }
+
+    .reveal .plotly-slide { width: 100%; height: 580px; }
+
+    /* KPI grid (slides Overview) */
+    .reveal .kpi-grid {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem;
+    }
+    .reveal .kpi-cell {
+      background: #222; border: 1px solid #333; border-radius: 0.5rem; padding: 1.2rem;
+    }
+    .reveal .kpi-cell .lbl { font-size: 0.4em; color: #888; text-transform: uppercase; }
+    .reveal .kpi-cell .val { font-size: 1.5em; font-weight: 700; color: #4dabf7; }
+
+    /* Macros badges colorés */
+    .reveal .macro-badge {
+      display: inline-block; padding: 0.2em 0.6em; border-radius: 0.25em;
+      font-size: 0.55em; color: #fff; margin: 0 0.2em;
+    }
+
+    /* Table récap segments compacte */
+    .reveal table.recap { font-size: 0.45em; margin: 0 auto; border-collapse: collapse; }
+    .reveal table.recap th { color: #888; padding: 0.3em 0.6em; font-weight: 500; }
+    .reveal table.recap td { padding: 0.3em 0.6em; border-top: 1px solid #2a2a2a; }
+    .reveal table.recap td.right { text-align: right; }
+    .reveal table.recap .seg-dot {
+      display: inline-block; width: 0.7em; height: 0.7em; border-radius: 50%;
+      vertical-align: middle; margin-right: 0.4em;
+    }
+
+    /* Démo Airflow live */
+    .reveal .airflow-demo {
+      display: grid; grid-template-columns: 1fr 2fr; gap: 1.5rem;
+      align-items: start; text-align: left;
+    }
+    .reveal .airflow-demo .panel {
+      background: #1e1e1e; border: 1px solid #333; border-radius: 0.5rem; padding: 1rem;
+    }
+    .reveal .btn-primary {
+      background: #4dabf7; color: #000; border: none; border-radius: 0.4em;
+      padding: 0.7em 1.4em; font-size: 0.55em; font-weight: 600; cursor: pointer;
+      letter-spacing: 0.05em; text-transform: uppercase;
+    }
+    .reveal .btn-primary:hover { background: #74c0fc; }
+    .reveal .btn-primary:disabled { background: #555; color: #888; cursor: not-allowed; }
+    .reveal .task-row {
+      display: grid; grid-template-columns: 1fr auto auto; gap: 0.6rem;
+      padding: 0.5rem; border-bottom: 1px solid #2a2a2a; font-size: 0.45em;
+    }
+    .reveal .task-row .state {
+      display: inline-block; padding: 0.1em 0.5em; border-radius: 0.25em;
+      font-size: 0.85em; font-weight: 600;
+    }
+    .reveal .state.success  { background: #2c7a4b; color: #fff; }
+    .reveal .state.running  { background: #3060a0; color: #fff; animation: pulse 1.4s infinite; }
+    .reveal .state.queued   { background: #6b4c9a; color: #fff; }
+    .reveal .state.scheduled { background: #6b4c9a; color: #fff; }
+    .reveal .state.failed   { background: #a50026; color: #fff; }
+    .reveal .state.upstream_failed { background: #a50026; color: #fff; }
+    .reveal .state.skipped  { background: #555; color: #ccc; }
+    .reveal .state.none, .reveal .state {
+      background: #2c2c2c; color: #888;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50%      { opacity: 0.5; }
+    }
+
+    .reveal .iframe-wrap {
+      width: 100%; height: 580px; border: 1px solid #333; border-radius: 0.4em;
+      background: #fff;
+    }
+    .reveal .iframe-wrap iframe { width: 100%; height: 100%; border: 0; }
+
+    .reveal .small-list { font-size: 0.55em; }
+    .reveal .small-list li { margin: 0.4em 0; }
+
+    .reveal pre.ascii {
+      font-size: 0.34em; line-height: 1.35; background: #1a1a1a;
+      padding: 0.9em; border-radius: 0.4em; color: #ccc;
+    }
+  </style>
+{% endblock %}
+
+{% block content %}
+<div class="reveal">
+  <div class="slides">
+
+    <!-- ────────────────────────────────────────────────────────── -->
+    <!-- 1. Titre                                                   -->
+    <!-- ────────────────────────────────────────────────────────── -->
+    <section>
+      <h1>Segmentation RFM</h1>
+      <h3 class="accent">Online Retail II — Pipeline end-to-end</h3>
+      <br>
+      <p class="footnote">
+        <span class="pill">Postgres 15</span>
+        <span class="pill">Apache Airflow 2.9</span>
+        <span class="pill">Docker Compose</span>
+        <span class="pill">Flask + reveal.js</span>
+        <span class="pill">Plotly</span>
+      </p>
+      <p class="footnote">
+        Naviguez avec → · Plein écran : F · Vue grille : Esc
+      </p>
+    </section>
+
+    <!-- ────────────────────────────────────────────────────────── -->
+    <!-- 2. Le brief en 4 lignes                                    -->
+    <!-- ────────────────────────────────────────────────────────── -->
+    <section>
+      <h2>Le brief en 4 lignes</h2>
+      <ul class="small-list">
+        <li>Construire un <strong>pipeline ETL RFM</strong> sur Online Retail II
+            (1,07 M lignes, ~5 900 clients distincts)</li>
+        <li>Orchestrer le tout avec <strong>Apache Airflow</strong> dans
+            <strong>Docker Compose</strong> (objets principaux du brief)</li>
+        <li>Produire un dashboard qui expose les <strong>11 segments RFM</strong>
+            de manière exploratoire et opérationnelle</li>
+        <li>Le présenter en démo orale en 10–15 min, avec preuve de
+            compréhension des concepts</li>
+      </ul>
+    </section>
+
+    <!-- ────────────────────────────────────────────────────────── -->
+    <!-- 3. Architecture                                            -->
+    <!-- ────────────────────────────────────────────────────────── -->
+    <section>
+      <h2>Architecture</h2>
+      <pre class="ascii">
+                       ┌──────── docker compose ────────┐
+                       │                                │
+   ┌───────┐           │  ┌─────────────────────────┐   │
+   │ XLSX  │──────────▶│  │  postgres :5432         │◀──┼──┐
+   │ 1,07M │  read-only│  │   raw / clean / analytics│   │  │
+   │ rows  │           │  └─────────────────────────┘   │  │
+   └───────┘           │                                │  │
+                       │  ┌─────────────────────────┐   │  │
+                       │  │  airflow :8080          │───┼──┘
+                       │  │   webserver + scheduler │   │
+                       │  │                         │   │
+                       │  │   DAG rfm_pipeline      │   │
+                       │  │   ┌──────────┐          │   │
+                       │  │   │ ingest   │          │   │
+                       │  │   ├──────────┤          │   │
+                       │  │   │ transform│          │   │
+                       │  │   ├──────────┤          │   │
+                       │  │   │ load_seg │          │   │
+                       │  │   ├──────────┤          │   │
+                       │  │   │ history  │ ★ extra  │   │
+                       │  │   └──────────┘          │   │
+                       │  └─────────────────────────┘   │
+                       │                                │
+                       │  ┌─────────────────────────┐   │
+                       │  │  dashboard :8501        │   │
+                       │  │   Flask + reveal.js     │   │
+                       │  │   Plotly + HTMX         │   │
+                       │  └─────────────────────────┘   │
+                       └────────────────────────────────┘
+      </pre>
+    </section>
+
+    <!-- ────────────────────────────────────────────────────────── -->
+    <!-- 4. KPI dataset                                             -->
+    <!-- ────────────────────────────────────────────────────────── -->
+    <section>
+      <h2>Le dataset en chiffres</h2>
+      <div class="kpi-grid">
+        <div class="kpi-cell">
+          <div class="lbl">Lignes brutes</div>
+          <div class="val">{{ "{:,}".format(1067371).replace(",", " ") }}</div>
+        </div>
+        <div class="kpi-cell">
+          <div class="lbl">Ventes propres</div>
+          <div class="val">{{ "{:,}".format(802637).replace(",", " ") }}</div>
+        </div>
+        <div class="kpi-cell">
+          <div class="lbl">Clients RFM</div>
+          <div class="val">{{ "{:,}".format(kpi_bar.total_users).replace(",", " ") }}</div>
+        </div>
+        <div class="kpi-cell">
+          <div class="lbl">Total transactions</div>
+          <div class="val">{{ "{:,}".format(kpi_bar.total_transactions).replace(",", " ") }}</div>
+        </div>
+        <div class="kpi-cell">
+          <div class="lbl">Revenu total</div>
+          <div class="val">£{{ "{:,.0f}".format(kpi_bar.total_net_revenue).replace(",", " ") }}</div>
+        </div>
+        <div class="kpi-cell">
+          <div class="lbl">% Churned</div>
+          <div class="val">{{ kpi_bar.pct_churned }}%</div>
+        </div>
+      </div>
+      <p class="footnote">
+        Période : déc 2009 → déc 2011 · 24 mois de données ·
+        ARPU £{{ "{:,.0f}".format(kpi_bar.arpu).replace(",", " ") }}
+        · ATPU {{ kpi_bar.atpu }}
+      </p>
+    </section>
+
+    <!-- ────────────────────────────────────────────────────────── -->
+    <!-- 5. Cleaning : cascade exclusive                            -->
+    <!-- ────────────────────────────────────────────────────────── -->
+    <section>
+      <h2>Cleaning : cascade exclusive en 4 buckets</h2>
+      <p class="footnote">
+        La cascade est exclusive entre buckets, mais elle n'est pas exhaustive :
+        le RFM v1 écarte encore les transactions anonymes et certaines anomalies.
+      </p>
+      <pre class="ascii">
+  raw.online_retail (1 067 371)
+        │
+        ├─▶ stock_movements    : description NULL ∧ customer_id NULL ∧ price = 0
+        │                        ≈   4 382 lignes
+        │
+        ├─▶ cancellations      : invoice LIKE 'C%' (sauf stock_movements)
+        │                        ≈  19 494 lignes
+        │
+        ├─▶ non_product_lines  : stock_code dans (POST/DOT/BANK/ADJUST/...)
+        │                        ≈   4 805 lignes
+        │
+        └─▶ clean.sales        : ventes exploitables pour le RFM
+                                 ≈ 802 637 lignes
+      </pre>
+      <p class="footnote">
+        Hors de ces 4 buckets, ~236 k lignes restent exclues du RFM v1,
+        principalement des transactions anonymes (<code>customer_id</code> nul).
+      </p>
+    </section>
+
+    <!-- ────────────────────────────────────────────────────────── -->
+    <!-- 6. NTILE(5) + 11 segments                                  -->
+    <!-- ────────────────────────────────────────────────────────── -->
+    <section>
+      <h2>RFM : NTILE(5) + 11 segments</h2>
+      <pre class="ascii">
+  -- Pour chaque client, R/F/M scores 1..5 via quintiles
+  WITH ref AS (
+    SELECT MAX(invoice_date)::date + 1 AS ref_date FROM clean.sales
+  ),
+  rfm_raw AS (
+    SELECT customer_id,
+           (r.ref_date - MAX(invoice_date)::date) AS recency,
+           COUNT(DISTINCT invoice_id)              AS frequency,
+           SUM(line_amount)                        AS monetary
+    FROM clean.sales s, ref r
+    GROUP BY customer_id, r.ref_date
+  )
+  INSERT INTO analytics.customer_rfm
+  SELECT customer_id, recency, frequency, monetary,
+         <span class="accent">6 - NTILE(5) OVER (ORDER BY recency, customer_id)</span> AS r_score,
+         NTILE(5) OVER (ORDER BY frequency, customer_id)                                 AS f_score,
+         NTILE(5) OVER (ORDER BY monetary, customer_id)                                  AS m_score
+  FROM rfm_raw;</pre>
+      <p class="footnote">
+        Le R est inversé (6 - NTILE) pour que 5 = très récent.
+        <br>
+        <span class="accent">customer_id</span> sert aussi de tie-breaker stable
+        pour éviter les changements de score sur les ex aequo d'un rerun à l'autre.
+        Les 11 segments business sont assignés ensuite via un UPDATE CASE
+        ordonné <em>spécifique → général</em>.
+      </p>
+    </section>
+
+    <!-- ────────────────────────────────────────────────────────── -->
+    <!-- 7. Récap des 11 segments                                   -->
+    <!-- ────────────────────────────────────────────────────────── -->
+    <section>
+      <h2>Les 11 segments</h2>
+      <table class="recap">
+        <thead>
+          <tr>
+            <th style="text-align:left;">Segment</th>
+            <th class="right">Clients</th>
+            <th class="right">% Users</th>
+            <th class="right">% Revenue</th>
+            <th class="right">AVG Recency</th>
+            <th class="right">AVG Monetary</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in segment_kpi_table %}
+          <tr>
+            <td style="text-align:left;">
+              <span class="seg-dot" style="background:{{ segment_colors[r.segment_label] }}"></span>
+              {{ r.segment_label }}
+            </td>
+            <td class="right">{{ "{:,}".format(r.total_users).replace(",", " ") }}</td>
+            <td class="right">{{ r.pct_users }}%</td>
+            <td class="right">{{ r.pct_revenue }}%</td>
+            <td class="right">{{ r.avg_recency }} j</td>
+            <td class="right">£{{ "{:,.0f}".format(r.avg_monetary).replace(",", " ") }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      <p class="footnote">
+        Macros :
+        <span class="macro-badge" style="background:#2c7a4b">A.LOYAL</span>
+        <span class="macro-badge" style="background:#3060a0">B.PROMISING</span>
+        <span class="macro-badge" style="background:#6b4c9a">C.SLEEP</span>
+        <span class="macro-badge" style="background:#c95b27">D.LOST</span>
+      </p>
+    </section>
+
+    <!-- ────────────────────────────────────────────────────────── -->
+    <!-- 8. DÉMO Airflow LIVE — trigger                             -->
+    <!-- ────────────────────────────────────────────────────────── -->
+    <section>
+      <h2>Démo Airflow live <span class="accent">⚡</span></h2>
+      <div class="airflow-demo">
+        <div class="panel">
+          <p style="font-size:0.55em; margin-top:0;">
+            DAG <code class="accent">rfm_pipeline</code><br>
+            <span id="afHealth" style="font-size:0.85em; color:#888;">vérification…</span>
+          </p>
+          <button id="btnTrigger" class="btn-primary">▶ Trigger DAG</button>
+          <p style="font-size:0.45em; color:#888; margin-top:1em;">
+            Polling auto toutes les 3 s
+          </p>
+        </div>
+        <div class="panel">
+          <div id="runHeader" style="font-size:0.5em; color:#888; margin-bottom:0.6em;">
+            Aucun run récupéré
+          </div>
+          <div id="taskList"></div>
+        </div>
+      </div>
+      <p class="footnote">
+        Les boutons appellent <code>/api/airflow/*</code> qui forwarde
+        vers l'API REST Airflow (Basic Auth) côté serveur — bypass CORS.
+      </p>
+    </section>
+
+    <!-- ────────────────────────────────────────────────────────── -->
+    <!-- 9. DÉMO Airflow — iframe UI                                -->
+    <!-- ────────────────────────────────────────────────────────── -->
+    <section>
+      <h2>Airflow UI embarquée</h2>
+      <div class="iframe-wrap">
+        <iframe src="{{ airflow_url }}/dags/rfm_pipeline/grid" loading="lazy"></iframe>
+      </div>
+      <p class="footnote">
+        admin / admin · Si l'iframe est bloquée par X-Frame-Options,
+        ouvrir dans un onglet : <a href="{{ airflow_url }}" target="_blank" class="accent">{{ airflow_url }}</a>
+      </p>
+    </section>
+
+    <!-- ────────────────────────────────────────────────────────── -->
+    <!-- 10. Snapshot mensuel                                       -->
+    <!-- ────────────────────────────────────────────────────────── -->
+    <section>
+      <h2>Le snapshot mensuel <span class="accent">★</span></h2>
+      <p class="small-list" style="text-align:left; max-width:90%; margin:0 auto;">
+        Notre 4ᵉ task <code class="accent">compute_rfm_history</code> est notre
+        <em>matériel supplémentaire</em> dans le DAG Airflow :
+        elle <strong>recalcule rétrospectivement</strong> le RFM à chaque fin
+        de mois, en utilisant uniquement les ventes ≤ snapshot_date.
+      </p>
+      <div class="kpi-grid" style="margin-top: 2em;">
+        <div class="kpi-cell">
+          <div class="lbl">Snapshots</div>
+          <div class="val">{{ history.n_snapshots }}</div>
+        </div>
+        <div class="kpi-cell">
+          <div class="lbl">Lignes</div>
+          <div class="val">{{ "{:,}".format(history.total_rows).replace(",", " ") }}</div>
+        </div>
+        <div class="kpi-cell">
+          <div class="lbl">Période</div>
+          <div class="val" style="font-size:0.9em;">
+            {{ history.first_snap }}<br>→ {{ history.last_snap }}
+          </div>
+        </div>
+      </div>
+      <p class="footnote">
+        Active 4 charts impossibles à produire avec un snapshot unique :
+        Movements (% par macro × mois) + Cohorts (acquisition × état actuel).
+      </p>
+    </section>
+
+    <!-- ────────────────────────────────────────────────────────── -->
+    <!-- 11. Démo dashboard — Treemap                               -->
+    <!-- ────────────────────────────────────────────────────────── -->
+    <section>
+      <h2>Distribution des 11 segments</h2>
+      <div id="treemap-slide" class="plotly-slide"></div>
+      <p class="footnote">Taille = nombre de clients · Couleur = monetary moyen</p>
+    </section>
+
+    <!-- ────────────────────────────────────────────────────────── -->
+    <!-- 12. Démo dashboard — Heatmap                               -->
+    <!-- ────────────────────────────────────────────────────────── -->
+    <section>
+      <h2>Heatmap Recency × Frequency</h2>
+      <div id="heatmap-slide" class="plotly-slide"></div>
+      <p class="footnote">
+        Cellule (R5, F5) = clients à la fois récents et fréquents — les Champions.
+      </p>
+    </section>
+
+    <!-- ────────────────────────────────────────────────────────── -->
+    <!-- 13. Démo dashboard — Movements                             -->
+    <!-- ────────────────────────────────────────────────────────── -->
+    <section>
+      <h2>Évolution mensuelle par macro segment</h2>
+      <div id="movements-slide" class="plotly-slide"></div>
+      <p class="footnote">
+        Construit sur <code>analytics.customer_rfm_history</code>
+        — composition cumulative de la base clients à chaque snapshot.
+      </p>
+    </section>
+
+    <!-- ────────────────────────────────────────────────────────── -->
+    <!-- 14. Choix techniques justifiés                             -->
+    <!-- ────────────────────────────────────────────────────────── -->
+    <section>
+      <h2>Choix techniques justifiés</h2>
+      <ul class="small-list">
+        <li><strong>Postgres-first</strong> : tout le typage est défini dans
+            le DDL (<code>customer_id INTEGER NULL</code>) → pandas ne casse pas</li>
+        <li><strong>NTILE(5) en SQL</strong> plutôt qu'en Python : plus rapide,
+            plus lisible, et profite directement des index</li>
+        <li><strong>Cascade exclusive</strong> au lieu d'une seule WHERE :
+            chaque ligne brute est traçable dans son bucket</li>
+        <li><strong>Airflow PythonOperator + .sql files</strong> : les SQL
+            sont versionnés indépendamment, le DAG les enchaîne via un
+            wrapper psycopg2 minimal</li>
+        <li><strong>Flask + reveal.js</strong> : Streamlit ne sait pas faire
+            de présentation slide-by-slide avec charts <em>interactifs</em>.
+            reveal.js + Plotly oui. C'est ce qui permet cette démo.</li>
+        <li><strong>uv</strong> : 10× plus rapide que pip pour les installs</li>
+      </ul>
+    </section>
+
+    <!-- ────────────────────────────────────────────────────────── -->
+    <!-- 15. Apprentissages + Q&A                                    -->
+    <!-- ────────────────────────────────────────────────────────── -->
+    <section>
+      <h1>Apprentissages</h1>
+      <ul class="small-list" style="text-align: left; max-width: 80%; margin: 0 auto;">
+        <li>Le piège du <strong>typage pandas</strong> qui force <code>customer_id</code>
+            en float64 et coupe les jointures — résolu en castant côté Postgres</li>
+        <li>L'<strong>ordre des CASE WHEN</strong> compte : du plus spécifique
+            au plus général, sinon les sous-segments sont absorbés</li>
+        <li><strong>Airflow + idempotence</strong> : chaque task TRUNCATE en début,
+            le DAG est rejouable sans état préalable</li>
+        <li>Les <strong>vues SQL</strong> sont parfaites pour l'enrichissement
+            (segment_label A→K, macro_segment) sans toucher au DDL initial</li>
+      </ul>
+      <br><br>
+      <h2>Questions ?</h2>
+    </section>
+
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+  <script src="{{ url_for('static', filename='js/reveal/reveal.js') }}"></script>
+  <script>
+    Reveal.initialize({
+      hash: true,
+      controls: true,
+      progress: true,
+      slideNumber: 'c/t',
+      width: 1280,
+      height: 720,
+      margin: 0.04,
+    });
+
+    // ─── Plotly charts dans les slides ────────────────────────────
+    var treemap   = {{ treemap_fig | safe }};
+    var heatmap   = {{ heatmap_fig | safe }};
+    var movements = {{ movements_pct_fig | safe }};
+    var cfg = {responsive: true, displaylogo: false,
+               modeBarButtonsToRemove: ['lasso2d', 'select2d']};
+
+    Reveal.on('ready', function() {
+      Plotly.newPlot('treemap-slide', treemap.data, treemap.layout, cfg);
+      Plotly.newPlot('heatmap-slide', heatmap.data, heatmap.layout, cfg);
+      Plotly.newPlot('movements-slide', movements.data, movements.layout, cfg);
+    });
+
+    Reveal.on('slidechanged', function() {
+      ['treemap-slide', 'heatmap-slide', 'movements-slide'].forEach(function(id) {
+        var el = document.getElementById(id);
+        if (el && el.data) Plotly.Plots.resize(el);
+      });
+    });
+
+    // ─── Démo Airflow live ────────────────────────────────────────
+    var pollHandle = null;
+
+    async function checkHealth() {
+      try {
+        var r = await fetch('/api/airflow/health');
+        var j = await r.json();
+        var elem = document.getElementById('afHealth');
+        if (j.ok) {
+          elem.textContent = '✓ Airflow up · scheduler ' + j.scheduler;
+          elem.style.color = '#3aa364';
+        } else {
+          elem.textContent = '✗ Airflow KO · ' + (j.error || 'unknown');
+          elem.style.color = '#c95b27';
+        }
+      } catch (e) {
+        var elem = document.getElementById('afHealth');
+        elem.textContent = '✗ ' + e.message;
+        elem.style.color = '#c95b27';
+      }
+    }
+
+    function renderRun(data) {
+      var header = document.getElementById('runHeader');
+      var list   = document.getElementById('taskList');
+      if (!data.run) {
+        header.textContent = 'Aucun run récupéré';
+        list.innerHTML = '';
+        return;
+      }
+      var run = data.run;
+      header.innerHTML = '<strong>' + run.dag_run_id + '</strong>'
+                       + ' · état : <span class="state ' + (run.state||'none') + '">' + (run.state||'?') + '</span>'
+                       + (run.start_date ? '<br><span style="font-size:0.85em">' + run.start_date + '</span>' : '');
+
+      var html = '';
+      data.tasks.forEach(function(t) {
+        var dur = t.duration ? Math.round(t.duration) + ' s' : '—';
+        html += '<div class="task-row">'
+              + '<span><code>' + t.task_id + '</code></span>'
+              + '<span>' + dur + '</span>'
+              + '<span class="state ' + (t.state||'none') + '">' + (t.state||'?') + '</span>'
+              + '</div>';
+      });
+      list.innerHTML = html;
+    }
+
+    async function pollLatestRun() {
+      try {
+        var r = await fetch('/api/airflow/runs/latest');
+        var j = await r.json();
+        renderRun(j);
+        // Si le run est terminé, on stoppe le polling
+        if (j.run && j.run.state && (j.run.state === 'success' || j.run.state === 'failed')) {
+          if (pollHandle) {
+            // On laisse 1 dernier poll puis on arrête
+            setTimeout(function() {
+              if (pollHandle) { clearInterval(pollHandle); pollHandle = null; }
+            }, 5000);
+          }
+        }
+      } catch (e) { /* silencieux */ }
+    }
+
+    async function triggerDag() {
+      var btn = document.getElementById('btnTrigger');
+      btn.disabled = true;
+      btn.textContent = '⏳ Trigger…';
+      try {
+        var r = await fetch('/api/airflow/trigger', {method: 'POST'});
+        var j = await r.json();
+        if (j.ok) {
+          btn.textContent = '✓ Triggered (' + j.dag_run_id + ')';
+        } else {
+          btn.textContent = '✗ ' + (j.error || 'erreur');
+        }
+        // Démarre le polling
+        if (pollHandle) clearInterval(pollHandle);
+        pollLatestRun();
+        pollHandle = setInterval(pollLatestRun, 3000);
+        // Réactive le bouton après 30 s
+        setTimeout(function() {
+          btn.disabled = false;
+          btn.textContent = '▶ Trigger DAG';
+        }, 30000);
+      } catch (e) {
+        btn.textContent = '✗ ' + e.message;
+        btn.disabled = false;
+      }
+    }
+
+    // Quand on entre sur la slide démo Airflow, on check la santé et
+    // on lance le polling pour afficher le dernier run.
+    Reveal.on('slidechanged', function(event) {
+      var hasTrigger = event.currentSlide.querySelector('#btnTrigger');
+      if (hasTrigger) {
+        checkHealth();
+        pollLatestRun();
+        if (pollHandle) clearInterval(pollHandle);
+        pollHandle = setInterval(pollLatestRun, 3000);
+      } else if (pollHandle) {
+        clearInterval(pollHandle);
+        pollHandle = null;
+      }
+    });
+
+    // Bind le bouton trigger (le bouton existe dès le ready)
+    Reveal.on('ready', function() {
+      var btn = document.getElementById('btnTrigger');
+      if (btn) btn.addEventListener('click', triggerDag);
+    });
+  </script>
+{% endblock %}

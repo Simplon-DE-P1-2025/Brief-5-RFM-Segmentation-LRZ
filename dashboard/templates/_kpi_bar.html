@@ -1,0 +1,75 @@
+{# ════════════════════════════════════════════════════════════════════
+   _kpi_bar.html — Composant Jinja réutilisable
+   ════════════════════════════════════════════════════════════════════
+
+   Affiche la barre de 6 KPI globaux utilisée sur toutes les pages
+   d'analyse (Overview + Recency + Frequency + Monetary).
+
+   Contexte attendu :
+     kpi_bar : dict avec total_users, total_transactions, total_net_revenue,
+               pct_new, pct_returning, pct_churned
+                                                                          #}
+
+<section class="row g-3 mb-4">
+
+  <div class="col-md-2 col-sm-4 col-6">
+    <div class="card kpi-card shadow-sm border-0">
+      <div class="card-body py-3">
+        <div class="text-muted text-uppercase small mb-1">Total Users</div>
+        <div class="h4 fw-bold mb-0">
+          {{ "{:,}".format(kpi_bar.total_users).replace(",", " ") }}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-2 col-sm-4 col-6">
+    <div class="card kpi-card shadow-sm border-0">
+      <div class="card-body py-3">
+        <div class="text-muted text-uppercase small mb-1">Total Transactions</div>
+        <div class="h4 fw-bold mb-0">
+          {{ "{:,}".format(kpi_bar.total_transactions).replace(",", " ") }}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-2 col-sm-4 col-6">
+    <div class="card kpi-card shadow-sm border-0">
+      <div class="card-body py-3">
+        <div class="text-muted text-uppercase small mb-1">Total Net Revenue</div>
+        <div class="h4 fw-bold mb-0">
+          £{{ "{:,.0f}".format(kpi_bar.total_net_revenue).replace(",", " ") }}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-2 col-sm-4 col-6">
+    <div class="card kpi-card shadow-sm border-0">
+      <div class="card-body py-3">
+        <div class="text-muted text-uppercase small mb-1">% New</div>
+        <div class="h4 fw-bold mb-0 text-success">{{ kpi_bar.pct_new }}%</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-2 col-sm-4 col-6">
+    <div class="card kpi-card shadow-sm border-0">
+      <div class="card-body py-3">
+        <div class="text-muted text-uppercase small mb-1">% Returning</div>
+        <div class="h4 fw-bold mb-0 text-primary">{{ kpi_bar.pct_returning }}%</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-2 col-sm-4 col-6">
+    <div class="card kpi-card shadow-sm border-0">
+      <div class="card-body py-3">
+        <div class="text-muted text-uppercase small mb-1">% Churned</div>
+        <div class="h4 fw-bold mb-0 text-danger">{{ kpi_bar.pct_churned }}%</div>
+      </div>
+    </div>
+  </div>
+
+</section>
