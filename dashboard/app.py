@@ -25,9 +25,10 @@ L'engine SQLAlchemy est instancié une seule fois au démarrage.
 
 from __future__ import annotations
 
-import base64
 import json
 import os
+import time
+from datetime import datetime, timezone
 from typing import Any
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
@@ -40,39 +41,77 @@ from dashboard.queries import cache
 
 
 # ─────────────────────────────────────────────────────────────────────
-# Sprint 6 — Proxy vers l'API REST Airflow
+# Sprint 6 — Proxy vers l'API REST Airflow 3
 #
 # Le navigateur ne peut pas appeler http://localhost:8080 directement
-# à cause du CORS (different ports = different origins). Flask forward
-# les requêtes côté serveur via urllib (zéro nouvelle dépendance).
+# (CORS). Flask forward les requêtes côté serveur via urllib.
 #
-# Côté Flask container, le hostname Airflow est `airflow-webserver`
-# (réseau Docker), pas localhost.
+# Côté Flask container, le hostname Airflow est `airflow-apiserver`
+# (clé YAML du service dans docker-compose, donc nom DNS interne).
+# Airflow 3 utilise /api/v2/... + JWT Bearer (FabAuthManager).
 # ─────────────────────────────────────────────────────────────────────
 
-AIRFLOW_BASE_URL = os.environ.get("AIRFLOW_BASE_URL", "http://airflow-webserver:8080")
-AIRFLOW_USER     = os.environ.get("AIRFLOW_USER", "admin")
-AIRFLOW_PASSWORD = os.environ.get("AIRFLOW_PASSWORD", "admin")
+AIRFLOW_BASE_URL = os.environ.get("AIRFLOW_BASE_URL", "http://airflow-apiserver:8080")
+AIRFLOW_USER     = os.environ.get("AIRFLOW_USER", "airflow")
+AIRFLOW_PASSWORD = os.environ.get("AIRFLOW_PASSWORD", "airflow")
 AIRFLOW_DAG_ID   = "rfm_pipeline"
+
+# Cache du JWT : (token, expires_at_epoch). TTL court (~10 min) pour
+# rester simple — on regénère sur 401 de toute façon.
+_jwt_cache: dict[str, Any] = {"token": None, "exp": 0.0}
+_JWT_TTL_SECONDS = 600
+
+
+def _get_jwt_token(force_refresh: bool = False) -> str:
+    """Récupère un JWT Bearer auprès de l'API auth d'Airflow 3.
+
+    Cache le token pendant ~10 min ; force_refresh=True pour invalider
+    (utilisé sur 401)."""
+    now = time.time()
+    if not force_refresh and _jwt_cache["token"] and _jwt_cache["exp"] > now:
+        return _jwt_cache["token"]
+
+    url = f"{AIRFLOW_BASE_URL}/auth/token"
+    body = json.dumps({"username": AIRFLOW_USER, "password": AIRFLOW_PASSWORD}).encode()
+    req = Request(
+        url,
+        data=body,
+        headers={"Content-Type": "application/json", "Accept": "application/json"},
+        method="POST",
+    )
+    with urlopen(req, timeout=10) as resp:
+        payload = json.loads(resp.read().decode())
+    token = payload.get("access_token") or payload.get("jwt_token") or payload.get("token")
+    if not token:
+        raise URLError(f"login response missing token field: keys={list(payload.keys())}")
+    _jwt_cache["token"] = token
+    _jwt_cache["exp"] = now + _JWT_TTL_SECONDS
+    return token
 
 
 def _airflow_request(path: str, method: str = "GET", body: dict | None = None) -> dict:
-    """Petit client urllib avec Basic Auth pour appeler l'API REST Airflow.
+    """Client urllib avec JWT Bearer pour appeler l'API REST Airflow 3.
 
-    Path doit commencer par `/api/v1/...`.
-    Renvoie un dict JSON parsé. Lève une exception en cas d'erreur HTTP.
+    Path doit commencer par `/api/v2/...`. Regénère le JWT sur 401.
     """
-    url = f"{AIRFLOW_BASE_URL}{path}"
-    auth = base64.b64encode(f"{AIRFLOW_USER}:{AIRFLOW_PASSWORD}".encode()).decode()
-    headers = {
-        "Authorization": f"Basic {auth}",
-        "Content-Type": "application/json",
-        "Accept": "application/json",
-    }
-    data = json.dumps(body).encode() if body else None
-    req = Request(url, data=data, headers=headers, method=method)
-    with urlopen(req, timeout=10) as resp:
-        return json.loads(resp.read().decode())
+    def _do(token: str) -> dict:
+        url = f"{AIRFLOW_BASE_URL}{path}"
+        headers = {
+            "Authorization": f"Bearer {token}",
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+        }
+        data = json.dumps(body).encode() if body else None
+        req = Request(url, data=data, headers=headers, method=method)
+        with urlopen(req, timeout=10) as resp:
+            return json.loads(resp.read().decode())
+
+    try:
+        return _do(_get_jwt_token())
+    except HTTPError as exc:
+        if exc.code == 401:
+            return _do(_get_jwt_token(force_refresh=True))
+        raise
 
 
 # ─────────────────────────────────────────────────────────────────────
@@ -341,6 +380,54 @@ def create_app() -> Flask:
             movements_pct_fig=charts.build_macro_movements_pct(movements_df),
         )
 
+    @app.route("/presentation-ve")
+    @app.route("/presentation-v2")
+    def presentation_ve():
+        """Version resserrée de la soutenance, alignée sur le brief final.
+
+        Focus : démonstration du projet, explication simple du pipeline,
+        justification des choix techniques et preuve de compréhension.
+        """
+        kpi_bar = queries.get_kpi_bar(engine)
+        bubble_df = queries.get_bubble_segments(engine)
+        rf_df = queries.get_rf_heatmap(engine)
+        movements_df = queries.get_macro_movements(engine)
+        history = queries.get_history_volumes(engine)
+
+        return render_template(
+            "presentation_ve.html",
+            kpi_bar=kpi_bar,
+            history=history,
+            airflow_url=os.environ.get("AIRFLOW_PUBLIC_URL", "http://localhost:8080"),
+            bubble_fig=charts.build_bubble_segments(bubble_df),
+            heatmap_fig=charts.build_rf_heatmap(rf_df),
+            movements_pct_fig=charts.build_macro_movements_pct(movements_df),
+        )
+
+    @app.route("/presentation-v3")
+    def presentation_v3():
+        """Le Voyage du Datum — présentation narrative en 9 chapitres.
+
+        On suit en first-person le client #17850 (un revendeur britannique
+        At Risk, vérifiable en base) à travers tout le pipeline. Démo
+        Airflow live conservée au chapitre 6 via /api/airflow/*.
+        """
+        kpi_bar = queries.get_kpi_bar(engine)
+        rf_df = queries.get_rf_heatmap(engine)
+        movements_df = queries.get_macro_movements(engine)
+        history = queries.get_history_volumes(engine)
+
+        return render_template(
+            "presentation_v3.html",
+            kpi_bar=kpi_bar,
+            history=history,
+            segment_colors=charts.SEGMENT_COLORS,
+            macro_colors=charts.MACRO_COLORS,
+            airflow_url=os.environ.get("AIRFLOW_PUBLIC_URL", "http://localhost:8080"),
+            heatmap_fig=charts.build_rf_heatmap(rf_df),
+            movements_pct_fig=charts.build_macro_movements_pct(movements_df),
+        )
+
     @app.route("/api/segments")
     def api_segments():
         # HTMX envoie soit ?segments=A&segments=B (multi-select natif),
@@ -367,7 +454,7 @@ def create_app() -> Flask:
     def airflow_health():
         """Ping l'API REST Airflow et renvoie OK / KO."""
         try:
-            data = _airflow_request("/api/v1/health")
+            data = _airflow_request("/api/v2/monitor/health")
             metadb = data.get("metadatabase", {}).get("status", "unknown")
             scheduler = data.get("scheduler", {}).get("status", "unknown")
             ok = metadb == "healthy" and scheduler == "healthy"
@@ -379,10 +466,13 @@ def create_app() -> Flask:
     def airflow_trigger():
         """Déclenche un nouveau run du DAG rfm_pipeline."""
         try:
+            # Airflow 3 a rendu logical_date obligatoire dans le body
+            # POST /api/v2/dags/{id}/dagRuns (sinon 422 Unprocessable Entity).
+            logical_date = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
             data = _airflow_request(
-                f"/api/v1/dags/{AIRFLOW_DAG_ID}/dagRuns",
+                f"/api/v2/dags/{AIRFLOW_DAG_ID}/dagRuns",
                 method="POST",
-                body={"conf": {}},
+                body={"conf": {}, "logical_date": logical_date},
             )
             return jsonify({
                 "ok": True,
@@ -400,7 +490,7 @@ def create_app() -> Flask:
         """Renvoie le dernier dag run + l'état de chacune de ses tasks."""
         try:
             runs = _airflow_request(
-                f"/api/v1/dags/{AIRFLOW_DAG_ID}/dagRuns?limit=1&order_by=-execution_date"
+                f"/api/v2/dags/{AIRFLOW_DAG_ID}/dagRuns?limit=1&order_by=-logical_date"
             )
             dag_runs = runs.get("dag_runs", [])
             if not dag_runs:
@@ -409,7 +499,7 @@ def create_app() -> Flask:
             run = dag_runs[0]
             run_id = run["dag_run_id"]
             tasks_resp = _airflow_request(
-                f"/api/v1/dags/{AIRFLOW_DAG_ID}/dagRuns/{run_id}/taskInstances"
+                f"/api/v2/dags/{AIRFLOW_DAG_ID}/dagRuns/{run_id}/taskInstances"
             )
             tasks = [
                 {

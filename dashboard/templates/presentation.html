@@ -307,8 +307,8 @@
       <br>
       <p class="footnote">
         <span class="pill">Docker Compose</span>
-        <span class="pill">Apache Airflow 2.9</span>
-        <span class="pill">Postgres 15</span>
+        <span class="pill">Apache Airflow 3.1</span>
+        <span class="pill">Postgres 16</span>
         <span class="pill">Flask + reveal.js</span>
         <span class="pill">Plotly</span>
       </p>
@@ -409,7 +409,7 @@
       <h2>Ce qu'on a écrit</h2>
       <pre class="file-tree">
 Brief-5-RFM-Segmentation-LRZ/
-├── <span class="docker">docker-compose.yml</span>       <span class="meta"># 6 services : postgres, airflow×3, etl, dashboard</span>
+├── <span class="docker">docker-compose.yaml</span>      <span class="meta"># 10 services : postgres, redis, airflow×6, etl, dashboard</span>
 ├── <span class="docker">Dockerfile</span>               <span class="meta"># image ETL custom (uv + python 3.11-slim)</span>
 ├── <span class="code">pyproject.toml</span>           <span class="meta"># deps Python (gérées avec uv)</span>
 ├── <span class="code">uv.lock</span>                  <span class="meta"># lockfile reproductible</span>
@@ -428,9 +428,9 @@ Brief-5-RFM-Segmentation-LRZ/
 │
 ├── <span class="dir">dashboard/</span>
 │   ├── <span class="docker">Dockerfile</span>             <span class="meta"># image Flask + gunicorn</span>
-│   ├── <span class="code">app.py</span>                <span class="meta"># 11 routes + proxy API Airflow</span>
+│   ├── <span class="code">app.py</span>                <span class="meta"># 12 routes + 3 proxy API Airflow</span>
 │   ├── <span class="code">queries.py</span> <span class="code">charts.py</span>  <span class="meta"># couche data + builders Plotly</span>
-│   └── <span class="dir">templates/</span>           <span class="meta"># 10 templates Jinja (vous êtes ici)</span>
+│   └── <span class="dir">templates/</span>           <span class="meta"># 12 templates Jinja (vous êtes ici)</span>
 │
 └── <span class="data">data/</span>
     └── online_retail_II.xlsx   <span class="meta"># 1,07 M lignes, source statique</span>
@@ -443,39 +443,39 @@ Brief-5-RFM-Segmentation-LRZ/
 
     {# ───── S6. docker-compose.yml ─ 1 min 15 ───── #}
     <section>
-      <h2><code>docker-compose.yml</code> — 6 services</h2>
+      <h2><code>docker-compose.yaml</code> — 10 services (stack Celery)</h2>
       <div class="compose-grid">
 
         <div class="service-card postgres">
           <h4><span class="icon">🐘</span> postgres</h4>
-          <p class="meta">image : <code>postgres:15</code></p>
+          <p class="meta">image : <code>postgres:16</code></p>
           <p class="meta">port : <code>5432</code></p>
           <p class="meta">volume : <code>postgres_data</code></p>
           <p class="meta">⚡ 2 bases : <code>airflow</code> + <code>rfm_db</code></p>
         </div>
 
-        <div class="service-card airflow">
-          <h4><span class="icon">⚙</span> airflow-init</h4>
-          <p class="meta">image : <code>apache/airflow:2.9.1</code></p>
-          <p class="meta">entrypoint : <code>db migrate + users create</code></p>
-          <p class="meta">restart : <code>no</code> (one-shot)</p>
-          <p class="meta">depends : postgres healthy</p>
+        <div class="service-card postgres">
+          <h4><span class="icon">📮</span> redis</h4>
+          <p class="meta">image : <code>redis:7.2-bookworm</code></p>
+          <p class="meta">port : <code>6379</code> (expose only)</p>
+          <p class="meta">rôle : broker Celery</p>
+          <p class="meta">healthcheck : <code>redis-cli ping</code></p>
         </div>
 
         <div class="service-card airflow">
-          <h4><span class="icon">🖥</span> airflow-webserver</h4>
-          <p class="meta">image : <code>apache/airflow:2.9.1</code></p>
-          <p class="meta">port : <code>8080</code> (UI + API REST)</p>
-          <p class="meta">volumes : <code>./dags ./etl ./data</code></p>
-          <p class="meta">auth : basic + session</p>
+          <h4><span class="icon">🖥</span> airflow-apiserver</h4>
+          <p class="meta">image : <code>apache/airflow:3.1.0</code> (custom)</p>
+          <p class="meta">port : <code>8080</code> (UI + API REST v2)</p>
+          <p class="meta">volumes : <code>./dags ./etl ./config ./plugins ./logs</code></p>
+          <p class="meta">auth : FAB (airflow / airflow)</p>
         </div>
 
         <div class="service-card airflow">
           <h4><span class="icon">⏱</span> airflow-scheduler</h4>
-          <p class="meta">image : <code>apache/airflow:2.9.1</code></p>
+          <p class="meta">image : <code>apache/airflow:3.1.0</code> (custom)</p>
           <p class="meta">command : <code>scheduler</code></p>
-          <p class="meta">executor : <code>LocalExecutor</code></p>
-          <p class="meta">surveille le dossier <code>dags/</code></p>
+          <p class="meta">executor : <code>CeleryExecutor</code></p>
+          <p class="meta">+ dag-processor / worker / triggerer / init</p>
         </div>
 
         <div class="service-card etl">
@@ -496,9 +496,12 @@ Brief-5-RFM-Segmentation-LRZ/
 
       </div>
       <p class="footnote" style="margin-top:1em;">
-        Un seul YAML, 6 services, un seul <code>docker compose up -d</code> —
-        Postgres héberge <strong>deux bases</strong> : <code>airflow</code>
-        (méta) et <code>rfm_db</code> (données métier).
+        Un seul YAML, 10 services, un seul <code>docker compose up -d</code> —
+        le stack Celery ajoute <code>redis</code> (broker) et 4 rôles Airflow
+        séparés (<em>dag-processor, worker, triggerer, init</em>) en plus
+        de l'<code>apiserver</code> et du <code>scheduler</code> illustrés
+        ci-dessus. Postgres héberge <strong>deux bases</strong> :
+        <code>airflow</code> (méta) et <code>rfm_db</code> (données métier).
       </p>
     </section>
 
@@ -580,21 +583,25 @@ Brief-5-RFM-Segmentation-LRZ/
         <div class="fs-col">
           <h4>Dans le container airflow</h4>
           <pre>/opt/airflow/
+├── dags/           ← mappé
+│   └── rfm_pipeline.py
 ├── etl/            ← mappé
 │   ├── ingest.py
 │   ├── 02_clean.sql
 │   └── …
-├── dags/           ← mappé
-│   └── rfm_pipeline.py
-└── data/           ← mappé
-    └── online_retail_II.xlsx</pre>
+├── config/         ← mappé (airflow.cfg)
+├── plugins/        ← mappé (vide)
+└── logs/           ← mappé</pre>
         </div>
 
       </div>
       <p class="footnote" style="margin-top:1.2em;">
-        Les 3 volumes <code>./dags</code> <code>./etl</code> <code>./data</code> sont montés
-        en live : <strong>modifier un SQL ou le DAG sur l'hôte est
-        immédiatement visible dans le container</strong> — pas de rebuild.
+        Les volumes <code>./dags</code> et <code>./etl</code> sont montés
+        en live côté Airflow : <strong>modifier un SQL ou le DAG sur
+        l'hôte est immédiatement visible dans le container</strong> — pas
+        de rebuild. Le dataset <code>data/online_retail_II.xlsx</code>
+        est embarqué dans l'image ETL via <code>COPY data/ ./data/</code>
+        (voir slide suivante) et n'a donc pas besoin d'un montage.
       </p>
     </section>
 
@@ -814,7 +821,7 @@ Brief-5-RFM-Segmentation-LRZ/
         <iframe src="{{ airflow_url }}/dags/rfm_pipeline/grid" loading="lazy"></iframe>
       </div>
       <p class="footnote">
-        admin / admin · si l'iframe est bloquée par X-Frame-Options,
+        airflow / airflow · si l'iframe est bloquée par X-Frame-Options,
         ouvrir : <a href="{{ airflow_url }}" target="_blank" class="accent">{{ airflow_url }}</a>
         · <code>transform_clean_rfm</code> → <code>load_segments</code> →
         <code>compute_rfm_history</code> en ~10 s.
@@ -869,7 +876,7 @@ Brief-5-RFM-Segmentation-LRZ/
         <div class="tech-card">
           <span class="icon">🐳</span>
           <h4>Docker Compose</h4>
-          <p>Un seul YAML, 6 services, reproductible partout. Pas d'install système.</p>
+          <p>Un seul YAML, 10 services (stack Celery complet), reproductible partout. Pas d'install système.</p>
         </div>
 
         <div class="tech-card">
@@ -920,6 +927,11 @@ Brief-5-RFM-Segmentation-LRZ/
       </ul>
       <br><br>
       <h2 class="accent">Questions ?</h2>
+      <p style="margin-top: 2em;">
+        <a href="/" style="display: inline-block; padding: 0.55em 1.2em; background: #21262d; color: #58a6ff; border: 1px solid #30363d; border-radius: 0.4em; font-size: 0.55em; text-decoration: none; letter-spacing: 0.05em;">
+          ← Retour au dashboard
+        </a>
+      </p>
     </section>
 
   </div>
@@ -958,24 +970,53 @@ Brief-5-RFM-Segmentation-LRZ/
 
     // ─── Démo Airflow live ────────────────────────────────────────
     var pollHandle = null;
+    var airflowAvailable = false;
+
+    function setBtnEnabled(enabled) {
+      var btn = document.getElementById('btnTrigger');
+      if (!btn) return;
+      if (enabled) {
+        btn.disabled = false;
+        btn.textContent = '▶ Trigger DAG';
+        btn.style.opacity = '1';
+        btn.style.cursor = '';
+      } else {
+        btn.disabled = true;
+        btn.textContent = '▶ Trigger DAG (offline)';
+        btn.style.opacity = '0.5';
+        btn.style.cursor = 'not-allowed';
+      }
+    }
 
     async function checkHealth() {
+      var elem = document.getElementById('afHealth');
       try {
         var r = await fetch('/api/airflow/health');
         var j = await r.json();
-        var elem = document.getElementById('afHealth');
-        if (!elem) return;
         if (j.ok) {
-          elem.textContent = '✓ Airflow up · scheduler ' + j.scheduler;
-          elem.style.color = '#7ee787';
+          airflowAvailable = true;
+          if (elem) {
+            elem.textContent = '✓ Airflow up · scheduler ' + j.scheduler;
+            elem.style.color = '#7ee787';
+          }
+          setBtnEnabled(true);
         } else {
-          elem.textContent = '✗ Airflow KO · ' + (j.error || 'unknown');
-          elem.style.color = '#ffa198';
+          airflowAvailable = false;
+          if (elem) {
+            elem.textContent = '⊘ Démo désactivée (Airflow non démarré)';
+            elem.style.color = '#8b949e';
+          }
+          setBtnEnabled(false);
         }
       } catch (e) {
-        var elem = document.getElementById('afHealth');
-        if (elem) { elem.textContent = '✗ ' + e.message; elem.style.color = '#ffa198'; }
+        airflowAvailable = false;
+        if (elem) {
+          elem.textContent = '⊘ Démo désactivée';
+          elem.style.color = '#8b949e';
+        }
+        setBtnEnabled(false);
       }
+      return airflowAvailable;
     }
 
     function renderPanel(data) {
@@ -1103,9 +1144,18 @@ Brief-5-RFM-Segmentation-LRZ/
       var ticker = document.getElementById('airflow-ticker');
       if (showTicker) {
         if (ticker) ticker.classList.add('visible');
-        checkHealth();
-        pollLatestRun();
-        if (!pollHandle) pollHandle = setInterval(pollLatestRun, 3000);
+        // On ne démarre le polling QUE si Airflow répond OK,
+        // pour éviter de marteler /api/airflow/runs/latest et garder
+        // un slide neutre quand la démo n'est pas démarrée.
+        checkHealth().then(function(ok) {
+          if (ok) {
+            pollLatestRun();
+            if (!pollHandle) pollHandle = setInterval(pollLatestRun, 3000);
+          } else if (pollHandle) {
+            clearInterval(pollHandle);
+            pollHandle = null;
+          }
+        });
       } else {
         if (ticker) ticker.classList.remove('visible');
         if (pollHandle) { clearInterval(pollHandle); pollHandle = null; }

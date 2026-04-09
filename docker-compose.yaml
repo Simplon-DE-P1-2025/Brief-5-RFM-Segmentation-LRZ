@@ -372,6 +372,9 @@ services:
         condition: service_healthy
     environment:
       RFM_DB_CONN: postgresql+psycopg2://rfm_user:rfm_pass@postgres/rfm_db
+      AIRFLOW_BASE_URL: http://airflow-apiserver:8080
+      AIRFLOW_USER: ${_AIRFLOW_WWW_USER_USERNAME:-airflow}
+      AIRFLOW_PASSWORD: ${_AIRFLOW_WWW_USER_PASSWORD:-airflow}
     ports:
       - "8501:8501"
     restart: unless-stopped

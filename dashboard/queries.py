@@ -219,7 +219,8 @@ def get_kpi_bar(engine: Engine) -> dict[str, Any]:
             "adslt": 0, "atpu": 0.0, "arpu": 0,
             "pct_new": 0, "pct_returning": 0, "pct_churned": 0,
         }
-    row = df.iloc[0]
+    # Tables vides → SUM/AVG renvoient NULL → cast direct plante.
+    row = df.iloc[0].fillna(0)
     return {
         "total_users":        int(row["total_users"]),
         "total_transactions": int(row["total_transactions"]),
