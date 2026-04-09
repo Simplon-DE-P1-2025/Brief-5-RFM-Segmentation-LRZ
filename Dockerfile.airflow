@@ -1,0 +1,23 @@
+# On repart de l'image de base choisie dans le compose
+FROM apache/airflow:3.1.0
+
+USER root
+
+# Installation des dépendances système nécessaires pour Soda (libpq) et la compilation (gcc)
+RUN apt-get update && apt-get install -y \
+    gcc \
+    libpq-dev \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+USER airflow
+
+# Installation de uv pour garder la cohérence avec votre service ETL
+RUN pip install --no-cache-dir uv
+
+# Copie de votre manifeste de dépendances
+COPY pyproject.toml ./
+
+# Installation des dépendances dans l'environnement Python d'Airflow
+# L'option --system est utilisée car on veut installer dans l'environnement global de l'image Airflow
+RUN uv pip install --system --no-cache -r pyproject.toml
