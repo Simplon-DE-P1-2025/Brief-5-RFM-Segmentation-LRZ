@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+{% set active_page = "movements" %}
+{% block title %}RFM — Macro Evolution{% endblock %}
+
+{% block content %}
+<main class="container-fluid py-4">
+
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+      <h1 class="h3 fw-bold mb-0">Macro Segment Evolution</h1>
+      <p class="text-muted small mb-0">
+        Évolution mensuelle de la composition macro de la base clients — alimenté par
+        <code>analytics.customer_rfm_history</code>
+        ({{ history.total_rows | default(0) }} lignes ·
+         {{ history.n_snapshots | default(0) }} snapshots ·
+         {{ history.first_snap }} → {{ history.last_snap }})
+      </p>
+    </div>
+    <span class="badge bg-secondary fs-6">Online Retail II — UK 2009-2011</span>
+  </div>
+
+  {# ─── KPI bar global réutilisé ───────────────────────────────── #}
+  {% include "_kpi_bar.html" %}
+
+  {# ─── Légende des 4 macro segments ───────────────────────────── #}
+  <section class="mb-3">
+    <div class="card shadow-sm border-0">
+      <div class="card-body py-3">
+        <strong class="me-3">Macro segments :</strong>
+        <span class="badge me-2" style="background:#2c7a4b">A.LOYAL</span>
+        <small class="text-muted me-3">Champions + Loyal + Potential Loyalist</small>
+        <span class="badge me-2" style="background:#3060a0">B.PROMISING</span>
+        <small class="text-muted me-3">New + Promising + Need Attention</small>
+        <span class="badge me-2" style="background:#6b4c9a">C.SLEEP</span>
+        <small class="text-muted me-3">About to Sleep + At Risk + Cannot Lose</small>
+        <span class="badge me-2" style="background:#c95b27">D.LOST</span>
+        <small class="text-muted">Hibernating + Lost</small>
+        <div class="small text-muted mt-2">
+          Chaque snapshot représente la composition complète de la base clients à date.
+          Cette vue montre bien la croissance cumulée de la base, mais ce n'est pas une matrice de transitions client à client.
+        </div>
+      </div>
+    </div>
+  </section>
+
+  {# ─── 100% stacked + absolu ──────────────────────────────────── #}
+  <section class="row g-3 mb-4">
+    <div class="col-12">
+      <div class="card shadow-sm border-0">
+        <div class="card-header bg-white">
+          <span class="fw-semibold">% Users per Macro Segment by Month</span>
+          <small class="text-muted ms-2">— part relative de la base à chaque snapshot</small>
+        </div>
+        <div class="card-body p-2">
+          <div id="movements_pct" style="height: 460px;"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="row g-3 mb-4">
+    <div class="col-12">
+      <div class="card shadow-sm border-0">
+        <div class="card-header bg-white">
+          <span class="fw-semibold">Users per Macro Segment by Month</span>
+          <small class="text-muted ms-2">— valeurs absolues (croissance cumulée de la base clients)</small>
+        </div>
+        <div class="card-body p-2">
+          <div id="movements_abs" style="height: 460px;"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</main>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  (function() {
+    var pct = {{ movements_pct_fig | safe }};
+    var abs_ = {{ movements_abs_fig | safe }};
+    var cfg = {responsive: true, displaylogo: false,
+               modeBarButtonsToRemove: ['lasso2d', 'select2d']};
+    Plotly.newPlot('movements_pct', pct.data, pct.layout, cfg);
+    Plotly.newPlot('movements_abs', abs_.data, abs_.layout, cfg);
+  })();
+</script>
+{% endblock %}

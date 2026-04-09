@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% block title %}RFM — {{ page_title }}{% endblock %}
+
+{% block content %}
+<main class="container-fluid py-4">
+
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+      <h1 class="h3 fw-bold mb-0">{{ page_title }}</h1>
+      <p class="text-muted small mb-0">{{ page_subtitle }}</p>
+    </div>
+    <span class="badge bg-secondary fs-6">Online Retail II — UK 2009-2011</span>
+  </div>
+
+  {# ─── KPI bar global (6 cards réutilisables) ───────────────────── #}
+  {% include "_kpi_bar.html" %}
+
+  {# ─── 3 KPI spécifiques à la dimension + 5 chips de bins ───────── #}
+  <section class="row g-3 mb-4">
+    <div class="col-lg-4">
+      <div class="row g-3">
+        {% for kpi in dimension_kpis %}
+        <div class="col-12">
+          <div class="card kpi-card shadow-sm border-0">
+            <div class="card-body py-2">
+              <div class="text-muted text-uppercase small">{{ kpi.label }}</div>
+              <div class="h4 fw-bold mb-0">{{ kpi.value }}</div>
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    <div class="col-lg-8">
+      <div class="card shadow-sm border-0 h-100">
+        <div class="card-header bg-white">
+          <span class="fw-semibold">Buckets de {{ dimension_label_lc }}</span>
+        </div>
+        <div class="card-body d-flex flex-wrap align-items-center gap-2">
+          {% for bin in bins %}
+            <span class="bin-chip bin-{{ bin_class }}">{{ bin }}</span>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </section>
+
+  {# ─── Box plot + Combo chart ───────────────────────────────────── #}
+  <section class="row g-3 mb-4">
+    <div class="col-lg-4">
+      <div class="card shadow-sm border-0">
+        <div class="card-header bg-white">
+          <span class="fw-semibold">{{ box_title }}</span>
+        </div>
+        <div class="card-body p-2">
+          <div id="box_chart" style="height: 460px;"></div>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-8">
+      <div class="card shadow-sm border-0">
+        <div class="card-header bg-white">
+          <span class="fw-semibold">{{ combo_title }}</span>
+        </div>
+        <div class="card-body p-2">
+          <div id="combo_chart" style="height: 460px;"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</main>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  (function() {
+    var box = {{ box_fig | safe }};
+    var combo = {{ combo_fig | safe }};
+    var cfg = {responsive: true, displaylogo: false,
+               modeBarButtonsToRemove: ['lasso2d', 'select2d']};
+    Plotly.newPlot('box_chart', box.data, box.layout, cfg);
+    Plotly.newPlot('combo_chart', combo.data, combo.layout, cfg);
+  })();
+</script>
+{% endblock %}

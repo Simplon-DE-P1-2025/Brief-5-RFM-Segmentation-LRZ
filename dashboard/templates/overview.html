@@ -1,0 +1,222 @@
+{% extends "base.html" %}
+{% set active_page = "overview" %}
+{% block title %}RFM — Overview{% endblock %}
+
+{% block content %}
+<main class="container-fluid py-4">
+
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+      <h1 class="h3 fw-bold mb-0">RFM Overview</h1>
+      <p class="text-muted small mb-0">Vue synthétique : segments, distributions et top produits</p>
+    </div>
+    <span class="badge bg-secondary fs-6">Online Retail II — UK 2009-2011</span>
+  </div>
+
+  {# ─── KPI bar (6 scorecards) ─────────────────────────────────────── #}
+  {% include "_kpi_bar.html" %}
+
+  {# ─── 3 cards R / F / M ──────────────────────────────────────────── #}
+  <section class="row g-3 mb-4">
+    <div class="col-md-4">
+      <div class="card shadow-sm border-0 rfm-letter-card rfm-letter-r">
+        <div class="card-body d-flex align-items-center">
+          <div class="display-1 fw-bold me-3 rfm-letter">R</div>
+          <div class="flex-grow-1">
+            <div class="text-muted text-uppercase small">AVG Days Since Last Tx</div>
+            <div class="display-6 fw-bold">{{ kpi_bar.adslt }}</div>
+            <a href="/recency" class="small text-decoration-none">EXPLORE RECENCY →</a>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card shadow-sm border-0 rfm-letter-card rfm-letter-f">
+        <div class="card-body d-flex align-items-center">
+          <div class="display-1 fw-bold me-3 rfm-letter">F</div>
+          <div class="flex-grow-1">
+            <div class="text-muted text-uppercase small">AVG Transactions per User</div>
+            <div class="display-6 fw-bold">{{ kpi_bar.atpu }}</div>
+            <a href="/frequency" class="small text-decoration-none">EXPLORE FREQUENCY →</a>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card shadow-sm border-0 rfm-letter-card rfm-letter-m">
+        <div class="card-body d-flex align-items-center">
+          <div class="display-1 fw-bold me-3 rfm-letter">M</div>
+          <div class="flex-grow-1">
+            <div class="text-muted text-uppercase small">AVG Net Revenue per User</div>
+            <div class="display-6 fw-bold">£{{ "{:,.0f}".format(kpi_bar.arpu).replace(",", " ") }}</div>
+            <a href="/monetary" class="small text-decoration-none">EXPLORE MONETARY →</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  {# ─── Bubble + Scatter ───────────────────────────────────────────── #}
+  <section class="row g-3 mb-4">
+    <div class="col-lg-7">
+      <div class="card shadow-sm border-0">
+        <div class="card-header bg-white">
+          <span class="fw-semibold">Recency &amp; Monetary par segment</span>
+          <small class="text-muted ms-2">— X = ADSLT, Y = CA total (log), taille = nb clients</small>
+        </div>
+        <div class="card-body p-2">
+          <div id="bubble" style="height: 460px;"></div>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-5">
+      <div class="card shadow-sm border-0">
+        <div class="card-header bg-white">
+          <span class="fw-semibold">Recency &amp; Monetary par utilisateur</span>
+          <small class="text-muted ms-2">— échantillon ~20 %</small>
+        </div>
+        <div class="card-body p-2">
+          <div id="scatter" style="height: 460px;"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  {# ─── Table KPI par segment ──────────────────────────────────────── #}
+  <section class="row g-3 mb-4">
+    <div class="col-12">
+      <div class="card shadow-sm border-0">
+        <div class="card-header bg-white">
+          <span class="fw-semibold">Recency, Frequency &amp; Monetary KPIs par segment</span>
+        </div>
+        <div class="card-body p-0">
+          <table class="table table-sm table-hover align-middle mb-0">
+            <thead class="table-light small text-uppercase text-muted">
+              <tr>
+                <th class="ps-3">Segment</th>
+                <th class="text-end">Total Users</th>
+                <th class="text-end">% Users</th>
+                <th class="text-end">% Revenue</th>
+                <th class="text-end">% Tx</th>
+                <th class="text-end">AVG Recency</th>
+                <th class="text-end">AVG Frequency</th>
+                <th class="text-end pe-3">AVG Monetary</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for r in segment_kpi_table %}
+              <tr>
+                <td class="ps-3">
+                  <span class="seg-dot" style="background:{{ segment_colors[r.segment_label] }}"></span>
+                  <strong>{{ r.segment_label }}</strong>
+                </td>
+                <td class="text-end">{{ "{:,}".format(r.total_users).replace(",", " ") }}</td>
+                <td class="text-end">{{ r.pct_users }}%</td>
+                <td class="text-end">{{ r.pct_revenue }}%</td>
+                <td class="text-end">{{ r.pct_tx }}%</td>
+                <td class="text-end">{{ r.avg_recency }} j</td>
+                <td class="text-end">{{ r.avg_frequency }}</td>
+                <td class="text-end pe-3">£{{ "{:,.0f}".format(r.avg_monetary).replace(",", " ") }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  {# ─── Heatmap R×F + CA mensuel ───────────────────────────────────── #}
+  <section class="row g-3 mb-4">
+    <div class="col-lg-5">
+      <div class="card shadow-sm border-0">
+        <div class="card-header bg-white">
+          <span class="fw-semibold">Heatmap R × F (5×5)</span>
+          <small class="text-muted ms-2">— effectif clients par cellule</small>
+        </div>
+        <div class="card-body p-2">
+          <div id="heatmap" style="height: 420px;"></div>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-7">
+      <div class="card shadow-sm border-0">
+        <div class="card-header bg-white">
+          <span class="fw-semibold">Évolution du CA mensuel</span>
+          <small class="text-muted ms-2">— 24 mois (déc 2009 → déc 2011)</small>
+        </div>
+        <div class="card-body p-2">
+          <div id="monthly_revenue" style="height: 420px;"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  {# ─── Top 5 produits par segment (accordion) ─────────────────────── #}
+  <section class="row g-3">
+    <div class="col-12">
+      <div class="card shadow-sm border-0">
+        <div class="card-header bg-white">
+          <span class="fw-semibold">Top 5 produits par segment</span>
+          <small class="text-muted ms-2">— jointure clean.sales × customer_rfm_v</small>
+        </div>
+        <div class="accordion accordion-flush" id="topProductsAccordion">
+          {% for segment, products in top_products.items() %}
+          <div class="accordion-item">
+            <h2 class="accordion-header">
+              <button class="accordion-button collapsed" type="button"
+                      data-bs-toggle="collapse" data-bs-target="#tp-{{ loop.index }}">
+                <span class="seg-dot me-2" style="background:{{ segment_colors[segment] }}"></span>
+                <strong>{{ segment }}</strong>
+                <span class="text-muted ms-2">— {{ products|length }} produits</span>
+              </button>
+            </h2>
+            <div id="tp-{{ loop.index }}" class="accordion-collapse collapse"
+                 data-bs-parent="#topProductsAccordion">
+              <div class="accordion-body p-0">
+                <table class="table table-sm table-striped mb-0">
+                  <thead class="table-light small text-muted">
+                    <tr>
+                      <th class="ps-3" style="width: 120px;">Stock code</th>
+                      <th>Description</th>
+                      <th class="text-end pe-3" style="width: 160px;">Revenue (£)</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% for p in products %}
+                    <tr>
+                      <td class="ps-3"><code>{{ p.stock_code }}</code></td>
+                      <td>{{ p.description }}</td>
+                      <td class="text-end pe-3">{{ "{:,.0f}".format(p.revenue).replace(",", " ") }}</td>
+                    </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </section>
+
+</main>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  (function() {
+    var bubble = {{ bubble_fig | safe }};
+    var scatter = {{ scatter_fig | safe }};
+    var heatmap = {{ heatmap_fig | safe }};
+    var monthly = {{ monthly_revenue_fig | safe }};
+    var cfg = {responsive: true, displaylogo: false,
+               modeBarButtonsToRemove: ['lasso2d', 'select2d']};
+    Plotly.newPlot('bubble', bubble.data, bubble.layout, cfg);
+    Plotly.newPlot('scatter', scatter.data, scatter.layout, cfg);
+    Plotly.newPlot('heatmap', heatmap.data, heatmap.layout, cfg);
+    Plotly.newPlot('monthly_revenue', monthly.data, monthly.layout, cfg);
+  })();
+</script>
+{% endblock %}

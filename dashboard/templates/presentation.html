@@ -1,0 +1,1115 @@
+{% extends "base.html" %}
+{% block title %}RFM — Présentation{% endblock %}
+
+{#
+  ═══════════════════════════════════════════════════════════════════════
+  Présentation reveal.js — refonte 2026-04-09
+  ═══════════════════════════════════════════════════════════════════════
+
+  Structure en 6 actes, 15 minutes :
+
+    Acte 1 — Cadrage                 (3 min)   S1-S4
+    Acte 2 — Docker                  (4 min)   S5-S8     ★ nouveau
+    Acte 3 — Le pipeline en logique  (3 min)   S9-S11
+    Acte 4 — Démo Airflow live       (3 min)   S12 à S13 ★ speaker-driven
+    Acte 5 — Démo dashboard          (1m30)    S14-S16
+    Acte 6 — Wrap-up                 (30s+QA)  S17-S18
+
+  Pour ajouter une image dans une slide :
+    <img src="{{ '{{' }} url_for('static', filename='img/presentation/mon.png') {{ '}}' }}">
+  Le dossier dashboard/static/img/presentation/ est prévu pour ça.
+
+  Les placeholders .svg-placeholder signalent les SVG à dessiner sur
+  https://excalidraw.com (File → Export → SVG), puis à déposer dans
+  dashboard/static/img/presentation/.
+#}
+
+{% block extra_css %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='js/reveal/reset.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='js/reveal/reveal.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='js/reveal/theme/black.css') }}">
+  <style>
+    /* ─── Fond sombre (Bootstrap bg-light écrase, on bat avec !important) ─ */
+    body > nav.navbar { display: none; }
+    body.bg-light, body { background: #191919 !important; }
+    .reveal-viewport { background: #191919 !important; }
+
+    .reveal h1, .reveal h2 { text-transform: none; color: #fff; }
+    .reveal h2 { font-size: 1.7em; }
+    .reveal .accent      { color: #58a6ff; }
+    .reveal .accent-grn  { color: #7ee787; }
+    .reveal .accent-org  { color: #ffa657; }
+    .reveal .footnote    { font-size: 0.45em; color: #8b949e; }
+    .reveal .pill {
+      display: inline-block; padding: 0.2em 0.6em; border-radius: 999px;
+      font-size: 0.55em; background: #21262d; color: #c9d1d9; margin: 0 0.2em;
+      border: 1px solid #30363d;
+    }
+    .reveal .small-list { font-size: 0.55em; text-align: left; max-width: 85%; margin: 0 auto; }
+    .reveal .small-list li { margin: 0.4em 0; }
+
+    .reveal pre.ascii {
+      font-size: 0.36em; line-height: 1.4; background: #161b22;
+      padding: 0.9em 1.1em; border-radius: 0.4em; color: #c9d1d9;
+      border: 1px solid #30363d; text-align: left;
+    }
+
+    /* ─── Acte 1 : KPI grid ───────────────────────────────────────────── */
+    .reveal .kpi-grid {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.2rem;
+      max-width: 92%; margin: 0 auto;
+    }
+    .reveal .kpi-cell {
+      background: #161b22; border: 1px solid #30363d; border-radius: 0.5rem;
+      padding: 1.1rem;
+    }
+    .reveal .kpi-cell .lbl { font-size: 0.4em; color: #8b949e; text-transform: uppercase; letter-spacing: 0.05em; }
+    .reveal .kpi-cell .val { font-size: 1.55em; font-weight: 700; color: #58a6ff; }
+
+    /* ─── Acte 2 : File tree (S5) ─────────────────────────────────────── */
+    .reveal .file-tree {
+      text-align: left; font-family: 'SF Mono', Menlo, Consolas, monospace;
+      font-size: 0.42em; line-height: 1.55; background: #161b22;
+      padding: 1.3em 1.8em; border-radius: 0.5em; color: #c9d1d9;
+      border: 1px solid #30363d; display: inline-block; margin: 0 auto;
+    }
+    .reveal .file-tree .dir    { color: #79c0ff; font-weight: 600; }
+    .reveal .file-tree .code   { color: #7ee787; }
+    .reveal .file-tree .docker { color: #d2a8ff; }
+    .reveal .file-tree .data   { color: #ffa657; }
+    .reveal .file-tree .meta   { color: #6e7681; }
+
+    /* ─── Acte 2 : docker-compose services grid (S6) ──────────────────── */
+    .reveal .compose-grid {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.75em;
+      max-width: 94%; margin: 0.5em auto;
+    }
+    .reveal .service-card {
+      background: #161b22; border: 1px solid #30363d; border-radius: 0.4em;
+      padding: 0.65em 0.85em; text-align: left;
+    }
+    .reveal .service-card h4 {
+      margin: 0 0 0.3em 0; font-size: 0.6em; color: #e6edf3;
+      text-transform: none; display: flex; align-items: center; gap: 0.4em;
+    }
+    .reveal .service-card .icon { font-size: 1.1em; }
+    .reveal .service-card .meta {
+      color: #8b949e; font-size: 0.4em; margin: 0.1em 0; font-family: 'SF Mono', Menlo, monospace;
+    }
+    .reveal .service-card .meta code { color: #79c0ff; background: transparent; font-size: 1em; }
+    .reveal .service-card.postgres  { border-left: 3px solid #58a6ff; }
+    .reveal .service-card.airflow   { border-left: 3px solid #7ee787; }
+    .reveal .service-card.dashboard { border-left: 3px solid #ffa657; }
+    .reveal .service-card.etl       { border-left: 3px solid #d2a8ff; }
+
+    /* ─── Acte 2 : Dockerfile layers stack (S7) ───────────────────────── */
+    .reveal .dockerfile-stack {
+      display: flex; flex-direction: column; gap: 0.35em;
+      max-width: 88%; margin: 0 auto; text-align: left;
+    }
+    .reveal .layer {
+      display: grid; grid-template-columns: 1.5fr 2fr;
+      gap: 0.8em; align-items: center;
+      background: linear-gradient(90deg, #21262d 0%, #1a1f26 100%);
+      border: 1px solid #30363d; border-left: 3px solid #58a6ff;
+      padding: 0.5em 0.85em; border-radius: 0.3em;
+    }
+    .reveal .layer .instr {
+      color: #79c0ff; font-family: 'SF Mono', Menlo, monospace; font-size: 0.42em;
+    }
+    .reveal .layer .why {
+      color: #c9d1d9; font-size: 0.42em;
+    }
+    .reveal .layer.base   { border-left-color: #58a6ff; }
+    .reveal .layer.tool   { border-left-color: #7ee787; }
+    .reveal .layer.user   { border-left-color: #ffa657; }
+    .reveal .layer.cache  { border-left-color: #d2a8ff; }
+    .reveal .layer.code   { border-left-color: #58a6ff; }
+    .reveal .layer.switch { border-left-color: #f85149; }
+
+    /* ─── Acte 2 : Host vs container fs (S8) ──────────────────────────── */
+    .reveal .fs-split {
+      display: grid; grid-template-columns: 1fr auto 1fr;
+      gap: 1em; align-items: center; max-width: 95%; margin: 0 auto;
+    }
+    .reveal .fs-col {
+      background: #161b22; border: 1px solid #30363d; border-radius: 0.4em;
+      padding: 0.9em 1em; text-align: left;
+    }
+    .reveal .fs-col h4 {
+      margin: 0 0 0.4em 0; font-size: 0.5em; text-transform: uppercase;
+      color: #8b949e; letter-spacing: 0.08em;
+    }
+    .reveal .fs-col pre {
+      font-family: 'SF Mono', Menlo, monospace; font-size: 0.37em;
+      color: #c9d1d9; background: transparent; line-height: 1.55;
+      margin: 0; border: none; padding: 0;
+    }
+    .reveal .fs-arrow {
+      font-size: 1.4em; color: #58a6ff; text-align: center; line-height: 1;
+    }
+    .reveal .fs-arrow .lbl {
+      display: block; font-size: 0.25em; color: #8b949e; text-transform: uppercase;
+      margin-top: 0.35em; letter-spacing: 0.05em;
+    }
+
+    /* ─── Acte 3 : Segments recap table (S11) ─────────────────────────── */
+    .reveal table.recap { font-size: 0.45em; margin: 0 auto; border-collapse: collapse; }
+    .reveal table.recap th { color: #8b949e; padding: 0.3em 0.6em; font-weight: 500; }
+    .reveal table.recap td { padding: 0.3em 0.6em; border-top: 1px solid #2a2a2a; }
+    .reveal table.recap td.right { text-align: right; }
+    .reveal table.recap .seg-dot {
+      display: inline-block; width: 0.7em; height: 0.7em; border-radius: 50%;
+      vertical-align: middle; margin-right: 0.4em;
+    }
+    .reveal .macro-badge {
+      display: inline-block; padding: 0.2em 0.6em; border-radius: 0.25em;
+      font-size: 0.55em; color: #fff; margin: 0 0.2em;
+    }
+
+    /* ─── Acte 4 : Démo Airflow live (S12) ────────────────────────────── */
+    .reveal .airflow-demo {
+      display: grid; grid-template-columns: 1fr 2fr; gap: 1.5rem;
+      align-items: start; text-align: left;
+    }
+    .reveal .airflow-demo .panel {
+      background: #161b22; border: 1px solid #30363d; border-radius: 0.5rem; padding: 1rem;
+    }
+    .reveal .btn-primary {
+      background: #58a6ff; color: #0d1117; border: none; border-radius: 0.4em;
+      padding: 0.7em 1.4em; font-size: 0.55em; font-weight: 600; cursor: pointer;
+      letter-spacing: 0.05em; text-transform: uppercase;
+    }
+    .reveal .btn-primary:hover { background: #79b8ff; }
+    .reveal .btn-primary:disabled { background: #444; color: #8b949e; cursor: not-allowed; }
+    .reveal .task-row {
+      display: grid; grid-template-columns: 1fr auto auto; gap: 0.6rem;
+      padding: 0.5rem; border-bottom: 1px solid #2a2a2a; font-size: 0.45em;
+    }
+    .reveal .task-row .state {
+      display: inline-block; padding: 0.1em 0.5em; border-radius: 0.25em;
+      font-size: 0.85em; font-weight: 600;
+    }
+    .reveal .state.success         { background: #1b4a28; color: #7ee787; }
+    .reveal .state.running         { background: #0f2d5c; color: #58a6ff; animation: pulse 1.4s infinite; }
+    .reveal .state.queued,
+    .reveal .state.scheduled       { background: #3a2b58; color: #d2a8ff; }
+    .reveal .state.failed,
+    .reveal .state.upstream_failed { background: #5a1a1a; color: #ffa198; }
+    .reveal .state.skipped         { background: #444; color: #8b949e; }
+    .reveal .state                 { background: #21262d; color: #8b949e; }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50%      { opacity: 0.5; }
+    }
+
+    .reveal .iframe-wrap {
+      width: 100%; height: 580px; border: 1px solid #30363d; border-radius: 0.4em;
+      background: #fff;
+    }
+    .reveal .iframe-wrap iframe { width: 100%; height: 100%; border: 0; }
+
+    /* ─── Acte 4 : Sous-slides parallèles (S12a/b/c) ──────────────────── */
+    .reveal .sub-badge {
+      display: inline-block; padding: 0.2em 0.8em; border-radius: 0.3em;
+      background: #21262d; color: #58a6ff; font-size: 0.4em;
+      text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 0.7em;
+      border: 1px solid #30363d;
+    }
+
+    /* ─── Ticker Airflow persistant en bas d'écran (Acte 4) ───────────── */
+    .airflow-ticker {
+      position: fixed; bottom: 0; left: 0; right: 0;
+      background: #0d1117; border-top: 1px solid #30363d;
+      padding: 0.6em 1.4em; color: #c9d1d9; z-index: 1000;
+      display: flex; gap: 1.8em; align-items: center;
+      font-family: 'SF Mono', Menlo, Consolas, monospace; font-size: 0.75rem;
+      transform: translateY(100%); transition: transform 0.35s ease;
+    }
+    .airflow-ticker.visible { transform: translateY(0); }
+    .airflow-ticker .label  { color: #8b949e; text-transform: uppercase; font-size: 0.85em; letter-spacing: 0.05em; }
+    .airflow-ticker .value  { color: #e6edf3; font-weight: 600; }
+    .airflow-ticker .sep    { color: #30363d; }
+    .airflow-ticker .state  { padding: 0.15em 0.6em; border-radius: 0.25em; background: #21262d; font-weight: 600; }
+    .airflow-ticker .state.success { background: #1b4a28; color: #7ee787; }
+    .airflow-ticker .state.running { background: #0f2d5c; color: #58a6ff; animation: pulse 1.4s infinite; }
+    .airflow-ticker .state.failed  { background: #5a1a1a; color: #ffa198; }
+    .airflow-ticker .state.queued, .airflow-ticker .state.scheduled { background: #3a2b58; color: #d2a8ff; }
+
+    /* ─── Acte 5 : Plotly slides ──────────────────────────────────────── */
+    .reveal .plotly-slide { width: 100%; height: 580px; }
+
+    /* ─── Acte 6 : Tech choice cards (S17) ────────────────────────────── */
+    .reveal .tech-grid {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.9em;
+      max-width: 92%; margin: 0 auto;
+    }
+    .reveal .tech-card {
+      background: #161b22; border: 1px solid #30363d; border-radius: 0.5em;
+      padding: 0.9em; text-align: left;
+    }
+    .reveal .tech-card .icon { font-size: 1.4em; display: block; margin-bottom: 0.15em; }
+    .reveal .tech-card h4 {
+      margin: 0.2em 0 0.3em 0; text-transform: none; font-size: 0.52em; color: #e6edf3;
+    }
+    .reveal .tech-card p { font-size: 0.38em; color: #8b949e; margin: 0; line-height: 1.45; }
+
+    /* ─── Placeholder SVG (avant qu'excalidraw soit dessiné) ──────────── */
+    .reveal .svg-placeholder {
+      border: 2px dashed #4d4d4d; padding: 2.5em 1.5em; border-radius: 0.5em;
+      max-width: 75%; margin: 0 auto; text-align: center;
+      background: repeating-linear-gradient(45deg, #191919, #191919 10px, #1e1e1e 10px, #1e1e1e 20px);
+    }
+    .reveal .svg-placeholder .tag {
+      display: inline-block; padding: 0.2em 0.8em; border-radius: 0.3em;
+      background: #2d2d2d; color: #ffa657; font-size: 0.4em;
+      text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 0.6em;
+    }
+    .reveal .svg-placeholder .desc {
+      color: #c9d1d9; font-size: 0.52em; margin: 0.5em 0 0.3em 0;
+    }
+    .reveal .svg-placeholder .hint {
+      color: #6e7681; font-size: 0.38em; font-style: italic;
+    }
+    .reveal .slide-svg {
+      max-width: 85%; max-height: 560px; margin: 0 auto; display: block;
+    }
+  </style>
+{% endblock %}
+
+{% block content %}
+
+{# ─── Ticker Airflow persistant (hors .reveal pour rester fixed) ─────── #}
+<div id="airflow-ticker" class="airflow-ticker">
+  <span class="label">DAG</span>
+  <span class="value">rfm_pipeline</span>
+  <span class="sep">·</span>
+  <span class="label">run</span>
+  <span id="tickerState" class="state">idle</span>
+  <span class="sep">·</span>
+  <span class="label">task</span>
+  <span id="tickerCurrent" class="value">—</span>
+  <span id="tickerDuration" class="value">—</span>
+</div>
+
+<div class="reveal">
+  <div class="slides">
+
+    {# ══════════════════════════════════════════════════════════════════ #}
+    {# ACTE 1 — CADRAGE (3 min)                                           #}
+    {# ══════════════════════════════════════════════════════════════════ #}
+
+    {# ───── S1. Titre & équipe ─ 15 s ───── #}
+    <section>
+      <h1>Segmentation RFM</h1>
+      <h3 class="accent">Online Retail II — Pipeline end-to-end</h3>
+      <br>
+      <p class="footnote">
+        <span class="pill">Docker Compose</span>
+        <span class="pill">Apache Airflow 2.9</span>
+        <span class="pill">Postgres 15</span>
+        <span class="pill">Flask + reveal.js</span>
+        <span class="pill">Plotly</span>
+      </p>
+      <p class="footnote" style="margin-top:2em;">
+        Naviguez avec → · Plein écran : F · Vue grille : Esc
+      </p>
+    </section>
+
+    {# ───── S2. Le brief ─ 45 s ───── #}
+    <section>
+      <h2>Le brief en 3 lignes</h2>
+      <ul class="small-list">
+        <li>Construire un <strong>pipeline RFM</strong> sur Online Retail II
+            — 1,07 M lignes, ~5 900 clients</li>
+        <li>L'<strong>orchestrer avec Apache Airflow</strong> et tout
+            conteneuriser avec <strong>Docker Compose</strong>
+            (objets principaux du brief)</li>
+        <li>Le démontrer en 15 min : <strong>Docker → pipeline → dashboard</strong>,
+            avec preuve de compréhension</li>
+      </ul>
+      <p class="footnote" style="margin-top:2em;">
+        Ce qu'on va voir aujourd'hui suit exactement cet ordre :
+        d'abord le <em>contenant</em>, puis le <em>contenu</em>,
+        puis la <em>démo live</em>.
+      </p>
+    </section>
+
+    {# ───── S3. Architecture vue d'ensemble ─ 1 min ───── #}
+    <section>
+      <h2>Architecture — vue d'ensemble</h2>
+      {# Placeholder tant que architecture_overview.svg n'est pas dessiné.
+         Pour le remplacer, dessiner sur excalidraw.com, exporter en SVG,
+         déposer dans dashboard/static/img/presentation/, puis remplacer
+         le bloc ci-dessous par :
+         <img src="{{ url_for('static', filename='img/presentation/architecture_overview.svg') }}"
+              alt="Architecture" class="slide-svg"> #}
+      <div class="svg-placeholder">
+        <div class="tag">SVG à dessiner</div>
+        <div class="desc">
+          3 boîtes verticales :
+          <span class="accent-org">Data XLSX 1,07 M</span> →
+          <span class="accent-grn">Docker Compose (Postgres + Airflow + Dashboard)</span> →
+          <span class="accent">Dashboard Flask + reveal.js</span>
+        </div>
+        <div class="hint">
+          excalidraw.com · style sketch · export SVG · filename
+          <code>architecture_overview.svg</code>
+        </div>
+      </div>
+      <p class="footnote" style="margin-top:1.5em;">
+        Tout tient dans un seul <code>docker compose up -d</code>.
+        Objectif : reproductibilité zéro friction.
+      </p>
+    </section>
+
+    {# ───── S4. Dataset en chiffres ─ 45 s ───── #}
+    <section>
+      <h2>Le dataset en chiffres</h2>
+      <div class="kpi-grid">
+        <div class="kpi-cell">
+          <div class="lbl">Lignes brutes</div>
+          <div class="val">{{ "{:,}".format(1067371).replace(",", " ") }}</div>
+        </div>
+        <div class="kpi-cell">
+          <div class="lbl">Ventes propres</div>
+          <div class="val">{{ "{:,}".format(802637).replace(",", " ") }}</div>
+        </div>
+        <div class="kpi-cell">
+          <div class="lbl">Clients RFM</div>
+          <div class="val">{{ "{:,}".format(kpi_bar.total_users).replace(",", " ") }}</div>
+        </div>
+        <div class="kpi-cell">
+          <div class="lbl">Transactions</div>
+          <div class="val">{{ "{:,}".format(kpi_bar.total_transactions).replace(",", " ") }}</div>
+        </div>
+        <div class="kpi-cell">
+          <div class="lbl">Revenu total</div>
+          <div class="val">£{{ "{:,.0f}".format(kpi_bar.total_net_revenue).replace(",", " ") }}</div>
+        </div>
+        <div class="kpi-cell">
+          <div class="lbl">% Churned</div>
+          <div class="val">{{ kpi_bar.pct_churned }}%</div>
+        </div>
+      </div>
+      <p class="footnote" style="margin-top:1em;">
+        Période : déc 2009 → déc 2011 · 24 mois ·
+        ARPU £{{ "{:,.0f}".format(kpi_bar.arpu).replace(",", " ") }} ·
+        ATPU {{ kpi_bar.atpu }}
+      </p>
+    </section>
+
+    {# ══════════════════════════════════════════════════════════════════ #}
+    {# ACTE 2 — DOCKER : l'objet principal du brief  (4 min)              #}
+    {# ══════════════════════════════════════════════════════════════════ #}
+
+    {# ───── S5. Arborescence projet ─ 45 s ───── #}
+    <section>
+      <h2>Ce qu'on a écrit</h2>
+      <pre class="file-tree">
+Brief-5-RFM-Segmentation-LRZ/
+├── <span class="docker">docker-compose.yml</span>       <span class="meta"># 6 services : postgres, airflow×3, etl, dashboard</span>
+├── <span class="docker">Dockerfile</span>               <span class="meta"># image ETL custom (uv + python 3.11-slim)</span>
+├── <span class="code">pyproject.toml</span>           <span class="meta"># deps Python (gérées avec uv)</span>
+├── <span class="code">uv.lock</span>                  <span class="meta"># lockfile reproductible</span>
+├── <span class="code">init-db.sql</span>              <span class="meta"># DDL schemas raw/clean/analytics</span>
+│
+├── <span class="dir">dags/</span>
+│   └── <span class="code">rfm_pipeline.py</span>       <span class="meta"># DAG Airflow : 4 tasks</span>
+│
+├── <span class="dir">etl/</span>
+│   ├── <span class="code">ingest.py</span>             <span class="meta"># task 1 : xlsx → COPY → raw</span>
+│   ├── <span class="code">02_clean.sql</span>          <span class="meta"># task 2 : cascade exclusive</span>
+│   ├── <span class="code">03_rfm.sql</span>            <span class="meta"># task 2 : NTILE(5)</span>
+│   ├── <span class="code">04_segments.sql</span>       <span class="meta"># task 3 : CASE WHEN → 11 segments</span>
+│   ├── <span class="code">05_view_rfm_v.sql</span>     <span class="meta"># task 3 : vue enrichissement</span>
+│   └── <span class="code">06_history.sql</span>        <span class="meta"># task 4 : snapshot mensuel ★</span>
+│
+├── <span class="dir">dashboard/</span>
+│   ├── <span class="docker">Dockerfile</span>             <span class="meta"># image Flask + gunicorn</span>
+│   ├── <span class="code">app.py</span>                <span class="meta"># 11 routes + proxy API Airflow</span>
+│   ├── <span class="code">queries.py</span> <span class="code">charts.py</span>  <span class="meta"># couche data + builders Plotly</span>
+│   └── <span class="dir">templates/</span>           <span class="meta"># 10 templates Jinja (vous êtes ici)</span>
+│
+└── <span class="data">data/</span>
+    └── online_retail_II.xlsx   <span class="meta"># 1,07 M lignes, source statique</span>
+      </pre>
+      <p class="footnote" style="margin-top:0.8em;">
+        Tout le reste — Postgres, Airflow, openpyxl, gunicorn — est
+        fourni par Docker. Aucune install système requise.
+      </p>
+    </section>
+
+    {# ───── S6. docker-compose.yml ─ 1 min 15 ───── #}
+    <section>
+      <h2><code>docker-compose.yml</code> — 6 services</h2>
+      <div class="compose-grid">
+
+        <div class="service-card postgres">
+          <h4><span class="icon">🐘</span> postgres</h4>
+          <p class="meta">image : <code>postgres:15</code></p>
+          <p class="meta">port : <code>5432</code></p>
+          <p class="meta">volume : <code>postgres_data</code></p>
+          <p class="meta">⚡ 2 bases : <code>airflow</code> + <code>rfm_db</code></p>
+        </div>
+
+        <div class="service-card airflow">
+          <h4><span class="icon">⚙</span> airflow-init</h4>
+          <p class="meta">image : <code>apache/airflow:2.9.1</code></p>
+          <p class="meta">entrypoint : <code>db migrate + users create</code></p>
+          <p class="meta">restart : <code>no</code> (one-shot)</p>
+          <p class="meta">depends : postgres healthy</p>
+        </div>
+
+        <div class="service-card airflow">
+          <h4><span class="icon">🖥</span> airflow-webserver</h4>
+          <p class="meta">image : <code>apache/airflow:2.9.1</code></p>
+          <p class="meta">port : <code>8080</code> (UI + API REST)</p>
+          <p class="meta">volumes : <code>./dags ./etl ./data</code></p>
+          <p class="meta">auth : basic + session</p>
+        </div>
+
+        <div class="service-card airflow">
+          <h4><span class="icon">⏱</span> airflow-scheduler</h4>
+          <p class="meta">image : <code>apache/airflow:2.9.1</code></p>
+          <p class="meta">command : <code>scheduler</code></p>
+          <p class="meta">executor : <code>LocalExecutor</code></p>
+          <p class="meta">surveille le dossier <code>dags/</code></p>
+        </div>
+
+        <div class="service-card etl">
+          <h4><span class="icon">🔧</span> etl <span style="font-size:0.55em; color:#8b949e;">(profile manual)</span></h4>
+          <p class="meta">build : <code>./Dockerfile</code></p>
+          <p class="meta">image : custom uv + python slim</p>
+          <p class="meta">volumes : <code>./etl ./data</code></p>
+          <p class="meta">usage : tests hors Airflow</p>
+        </div>
+
+        <div class="service-card dashboard">
+          <h4><span class="icon">📊</span> dashboard</h4>
+          <p class="meta">build : <code>dashboard/Dockerfile</code></p>
+          <p class="meta">port : <code>8501</code></p>
+          <p class="meta">healthcheck : <code>GET /health</code></p>
+          <p class="meta">proxy API Airflow (bypass CORS)</p>
+        </div>
+
+      </div>
+      <p class="footnote" style="margin-top:1em;">
+        Un seul YAML, 6 services, un seul <code>docker compose up -d</code> —
+        Postgres héberge <strong>deux bases</strong> : <code>airflow</code>
+        (méta) et <code>rfm_db</code> (données métier).
+      </p>
+    </section>
+
+    {# ───── S7. Dockerfile décortiqué en couches ─ 1 min 30 ───── #}
+    <section>
+      <h2><code>Dockerfile</code> — la pile de couches</h2>
+      <p class="footnote" style="margin:-0.6em 0 1em 0;">
+        Chaque instruction = un layer Docker cacheable.
+        L'ordre des <code>COPY</code> est <em>capital</em> pour le cache.
+      </p>
+      <div class="dockerfile-stack">
+
+        <div class="layer base fragment">
+          <div class="instr">FROM python:3.11-slim</div>
+          <div class="why">Base légère (~45 MB) — pas de compilateurs, pas de man pages</div>
+        </div>
+
+        <div class="layer tool fragment">
+          <div class="instr">COPY --from=astral-sh/uv /uv /usr/local/bin/uv</div>
+          <div class="why">Injection du binaire uv — 10× plus rapide que pip</div>
+        </div>
+
+        <div class="layer user fragment">
+          <div class="instr">RUN groupadd etlgroup && useradd etluser</div>
+          <div class="why">User non-root — sécurité : un container root compromis = hôte compromis</div>
+        </div>
+
+        <div class="layer cache fragment">
+          <div class="instr">COPY pyproject.toml uv.lock ./</div>
+          <div class="why"><strong>Manifest d'abord</strong> — si le code change mais pas les deps, Docker réutilise le layer d'install</div>
+        </div>
+
+        <div class="layer cache fragment">
+          <div class="instr">RUN uv sync --frozen --no-dev</div>
+          <div class="why">Install déterministe depuis le lockfile — <code>--frozen</code> = pas de résolution</div>
+        </div>
+
+        <div class="layer code fragment">
+          <div class="instr">COPY etl/ ./etl/</div>
+          <div class="why">Code applicatif — APRÈS les deps, donc modifiable sans invalider le cache des layers du haut</div>
+        </div>
+
+        <div class="layer code fragment">
+          <div class="instr">COPY data/ ./data/</div>
+          <div class="why">Dataset source (on l'embarque dans l'image pour une démo 100 % offline)</div>
+        </div>
+
+        <div class="layer switch fragment">
+          <div class="instr">USER etluser</div>
+          <div class="why">Bascule non-root à l'exécution — l'install a été faite en root, l'exécution non</div>
+        </div>
+
+      </div>
+    </section>
+
+    {# ───── S8. Host vs container ─ 45 s ───── #}
+    <section>
+      <h2>Host vs container</h2>
+      <div class="fs-split">
+
+        <div class="fs-col">
+          <h4>Sur ta machine (host)</h4>
+          <pre>~/simplon/…/Brief-5/
+├── etl/
+│   ├── ingest.py
+│   ├── 02_clean.sql
+│   └── …
+├── dags/
+│   └── rfm_pipeline.py
+└── data/
+    └── online_retail_II.xlsx</pre>
+        </div>
+
+        <div class="fs-arrow">
+          →
+          <span class="lbl">volume mount</span>
+        </div>
+
+        <div class="fs-col">
+          <h4>Dans le container airflow</h4>
+          <pre>/opt/airflow/
+├── etl/            ← mappé
+│   ├── ingest.py
+│   ├── 02_clean.sql
+│   └── …
+├── dags/           ← mappé
+│   └── rfm_pipeline.py
+└── data/           ← mappé
+    └── online_retail_II.xlsx</pre>
+        </div>
+
+      </div>
+      <p class="footnote" style="margin-top:1.2em;">
+        Les 3 volumes <code>./dags</code> <code>./etl</code> <code>./data</code> sont montés
+        en live : <strong>modifier un SQL ou le DAG sur l'hôte est
+        immédiatement visible dans le container</strong> — pas de rebuild.
+      </p>
+    </section>
+
+    {# ══════════════════════════════════════════════════════════════════ #}
+    {# ACTE 3 — Le pipeline en logique  (3 min)                           #}
+    {# ══════════════════════════════════════════════════════════════════ #}
+
+    {# ───── S9. Cleaning cascade ─ 1 min ───── #}
+    <section>
+      <h2>Cleaning : cascade exclusive en 4 buckets</h2>
+      {# Placeholder pour cleaning_cascade.svg — en attendant, on garde le
+         pre.ascii qui reste lisible avec le fix font-size. #}
+      <pre class="ascii">
+  raw.online_retail (1 067 371)
+        │
+        ├─▶ stock_movements    : description NULL ∧ customer_id NULL ∧ price = 0
+        │                        ≈   4 382 lignes
+        │
+        ├─▶ cancellations      : invoice LIKE 'C%' (sauf stock_movements)
+        │                        ≈  19 494 lignes
+        │
+        ├─▶ non_product_lines  : stock_code dans (POST/DOT/BANK/ADJUST/...)
+        │                        ≈   4 805 lignes
+        │
+        └─▶ clean.sales        : ventes exploitables pour le RFM
+                                 ≈ 802 637 lignes
+      </pre>
+      <p class="footnote">
+        Cascade <strong>exclusive entre buckets</strong> — chaque ligne brute
+        tombe dans exactement un bucket. ~236 k lignes restent exclues
+        (transactions anonymes) et ne font pas partie du RFM v1.
+      </p>
+    </section>
+
+    {# ───── S10. NTILE(5) ─ 1 min ───── #}
+    <section>
+      <h2>RFM : NTILE(5) en SQL pur</h2>
+      <pre class="ascii">
+  WITH ref AS (
+    SELECT MAX(invoice_date)::date + 1 AS ref_date FROM clean.sales
+  ),
+  rfm_raw AS (
+    SELECT customer_id,
+           (r.ref_date - MAX(invoice_date)::date) AS recency,
+           COUNT(DISTINCT invoice_id)              AS frequency,
+           SUM(line_amount)                        AS monetary
+    FROM clean.sales s, ref r
+    GROUP BY customer_id, r.ref_date
+  )
+  INSERT INTO analytics.customer_rfm
+  SELECT customer_id, recency, frequency, monetary,
+         <span class="accent">6 - NTILE(5) OVER (ORDER BY recency, customer_id)</span> AS r_score,
+         NTILE(5) OVER (ORDER BY frequency, customer_id) AS f_score,
+         NTILE(5) OVER (ORDER BY monetary, customer_id)  AS m_score
+  FROM rfm_raw;</pre>
+      <p class="footnote">
+        Le <span class="accent">R est inversé</span> (<code>6 - NTILE</code>)
+        pour que 5 = très récent. <code>customer_id</code> sert de
+        <strong>tie-breaker stable</strong> — garantit des scores identiques
+        d'un rerun à l'autre sur les ex aequo.
+      </p>
+    </section>
+
+    {# ───── S11. Les 11 segments ─ 45 s ───── #}
+    <section>
+      <h2>Les 11 segments business</h2>
+      <table class="recap">
+        <thead>
+          <tr>
+            <th style="text-align:left;">Segment</th>
+            <th class="right">Clients</th>
+            <th class="right">% Users</th>
+            <th class="right">% Revenue</th>
+            <th class="right">AVG Recency</th>
+            <th class="right">AVG Monetary</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in segment_kpi_table %}
+          <tr>
+            <td style="text-align:left;">
+              <span class="seg-dot" style="background:{{ segment_colors[r.segment_label] }}"></span>
+              {{ r.segment_label }}
+            </td>
+            <td class="right">{{ "{:,}".format(r.total_users).replace(",", " ") }}</td>
+            <td class="right">{{ r.pct_users }}%</td>
+            <td class="right">{{ r.pct_revenue }}%</td>
+            <td class="right">{{ r.avg_recency }} j</td>
+            <td class="right">£{{ "{:,.0f}".format(r.avg_monetary).replace(",", " ") }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      <p class="footnote" style="margin-top:0.8em;">
+        Regroupés en 4 macros :
+        <span class="macro-badge" style="background:#2c7a4b">A.LOYAL</span>
+        <span class="macro-badge" style="background:#3060a0">B.PROMISING</span>
+        <span class="macro-badge" style="background:#6b4c9a">C.SLEEP</span>
+        <span class="macro-badge" style="background:#c95b27">D.LOST</span>
+      </p>
+    </section>
+
+    {# ══════════════════════════════════════════════════════════════════ #}
+    {# ACTE 4 — Démo Airflow live (3 min)                                 #}
+    {# ══════════════════════════════════════════════════════════════════ #}
+
+    {# ───── S12. Trigger DAG + démarrage du ticker ───── #}
+    <section data-airflow-ticker="true">
+      <h2>Démo Airflow live <span class="accent">⚡</span></h2>
+      <div class="airflow-demo">
+        <div class="panel">
+          <p style="font-size:0.55em; margin-top:0;">
+            DAG <code class="accent">rfm_pipeline</code><br>
+            <span id="afHealth" style="font-size:0.8em; color:#8b949e;">vérification…</span>
+          </p>
+          <button id="btnTrigger" class="btn-primary">▶ Trigger DAG</button>
+          <p style="font-size:0.4em; color:#8b949e; margin-top:1em;">
+            Polling auto toutes les 3 s.<br>
+            <code>ingest_xlsx</code> prend ~90 s,<br>
+            les 3 autres tasks ~10 s au total.
+          </p>
+        </div>
+        <div class="panel">
+          <div id="runHeader" style="font-size:0.5em; color:#8b949e; margin-bottom:0.6em;">
+            Aucun run récupéré
+          </div>
+          <div id="taskList"></div>
+        </div>
+      </div>
+      <p class="footnote">
+        Pendant qu'<code>ingest_xlsx</code> charge 1,07 M lignes XLSX,
+        on en profite pour parler des 3 pièges qu'on a évités →
+      </p>
+    </section>
+
+    {# ───── S12a. Sous-slide : piège pandas customer_id ───── #}
+    <section data-airflow-ticker="true">
+      <div class="sub-badge">Pendant que ça tourne · 1/3</div>
+      <h2>Le piège pandas <code>customer_id</code></h2>
+      <pre class="ascii">
+  # Ce que fait pandas par défaut
+  df = pd.read_excel("online_retail_II.xlsx")
+  df["Customer ID"].dtype
+  # → dtype('<span class="accent-org">float64</span>')   ← 12345.0 au lieu de 12345
+
+  # Conséquence : la jointure avec n'importe quelle table
+  # qui a customer_id INTEGER plante silencieusement.
+      </pre>
+      <p class="small-list" style="text-align:left; margin-top:0.7em;">
+        <strong>Pourquoi</strong> : pandas caste les colonnes numériques
+        contenant des <code>NaN</code> en <code>float64</code> (les entiers
+        n'admettent pas NaN en numpy).
+      </p>
+      <p class="small-list" style="text-align:left;">
+        <strong>Notre fix</strong> : <code>customer_id INTEGER NULL</code>
+        dans le DDL Postgres → <code>COPY FROM</code> force le cast à l'entrée.
+        Pandas ne voit jamais la colonne — et ne casse donc rien.
+      </p>
+    </section>
+
+    {# ───── S12b. Sous-slide : ordre des CASE WHEN ───── #}
+    <section data-airflow-ticker="true">
+      <div class="sub-badge">Pendant que ça tourne · 2/3</div>
+      <h2>L'ordre des <code>CASE WHEN</code></h2>
+      <pre class="ascii">
+  -- ❌ Ce qui absorbe les sous-segments
+  CASE
+    WHEN r &gt;= 4 AND f &lt;= 3 THEN 'Potential Loyalist'   <span class="accent-org">← trop large en premier</span>
+    WHEN r = 5 AND f = 1    THEN 'New Customers'        <span class="accent-org">← jamais atteint</span>
+    ...
+
+  -- ✅ Spécifique → général
+  CASE
+    WHEN r = 5 AND f = 1       THEN 'New Customers'
+    WHEN r &gt;= 4 AND f &lt;= 2 AND m &lt;= 2 THEN 'Promising'
+    WHEN r &gt;= 4 AND f &lt;= 3    THEN 'Potential Loyalist'
+    ...
+      </pre>
+      <p class="footnote" style="margin-top:0.8em;">
+        Sans le fix on n'avait que <strong>9/11 segments peuplés</strong> :
+        les 50 New Customers et les 364 Promising étaient absorbés
+        par Potential Loyalist. Un CASE SQL court-circuite au premier match,
+        donc l'ordre est <em>sémantique</em>, pas cosmétique.
+      </p>
+    </section>
+
+    {# ───── S12c. Sous-slide : idempotence Airflow ───── #}
+    <section data-airflow-ticker="true">
+      <div class="sub-badge">Pendant que ça tourne · 3/3</div>
+      <h2>Idempotence Airflow</h2>
+      <pre class="ascii">
+  def task_transform_clean_rfm():
+      <span class="accent">_truncate_downstream()</span>          # ← TRUNCATE en début de task
+      _run_sql_file("02_clean.sql")
+      _run_sql_file("03_rfm.sql")
+
+  # Chaque task repart d'un état connu.
+  # → on peut relancer le DAG autant de fois qu'on veut
+  # → pas de doublons, pas d'état résiduel
+      </pre>
+      <p class="small-list" style="text-align:left; margin-top:0.7em;">
+        <strong>Pourquoi ça compte</strong> : en production, une task
+        Airflow <em>échoue et retry</em>. Sans idempotence, un retry
+        peut doubler les insertions. Avec TRUNCATE au début, on garantit
+        que l'état final est toujours le même, quel que soit le chemin.
+      </p>
+      <p class="footnote">
+        La seule table qu'on ne TRUNCATE pas : <code>raw.online_retail</code>.
+        <code>ingest_xlsx</code> fait son propre TRUNCATE via <code>truncate=True</code>.
+      </p>
+    </section>
+
+    {# ───── S13. Cascade finale : vue grid Airflow ─ 30 s ───── #}
+    <section data-airflow-ticker="true">
+      <h2>Les 3 dernières tasks en cascade <span class="accent-grn">✓</span></h2>
+      <div class="iframe-wrap">
+        <iframe src="{{ airflow_url }}/dags/rfm_pipeline/grid" loading="lazy"></iframe>
+      </div>
+      <p class="footnote">
+        admin / admin · si l'iframe est bloquée par X-Frame-Options,
+        ouvrir : <a href="{{ airflow_url }}" target="_blank" class="accent">{{ airflow_url }}</a>
+        · <code>transform_clean_rfm</code> → <code>load_segments</code> →
+        <code>compute_rfm_history</code> en ~10 s.
+      </p>
+    </section>
+
+    {# ══════════════════════════════════════════════════════════════════ #}
+    {# ACTE 5 — Démo dashboard (1 min 30)                                 #}
+    {# ══════════════════════════════════════════════════════════════════ #}
+
+    {# ───── S14. Treemap ─ 30 s ───── #}
+    <section>
+      <h2>Distribution des 11 segments</h2>
+      <div id="treemap-slide" class="plotly-slide"></div>
+      <p class="footnote">
+        Taille = nombre de clients · Couleur = monetary moyen ·
+        <strong>chart interactif</strong> (zoom, hover) directement dans la slide.
+      </p>
+    </section>
+
+    {# ───── S15. Heatmap R × F ─ 30 s ───── #}
+    <section>
+      <h2>Heatmap Recency × Frequency</h2>
+      <div id="heatmap-slide" class="plotly-slide"></div>
+      <p class="footnote">
+        Cellule (R5, F5) = clients à la fois récents et fréquents — les Champions.
+        Le gradient permet de repérer les clusters en un coup d'œil.
+      </p>
+    </section>
+
+    {# ───── S16. Movements ─ 30 s ─ matériel supplémentaire ───── #}
+    <section>
+      <h2>Évolution mensuelle par macro segment <span class="accent-org">★</span></h2>
+      <div id="movements-slide" class="plotly-slide"></div>
+      <p class="footnote">
+        Possible uniquement grâce à la 4ᵉ task Airflow
+        <code>compute_rfm_history</code> — snapshot mensuel sur 24 mois,
+        ~{{ "{:,}".format(history.total_rows).replace(",", " ") }} lignes
+        dans <code>analytics.customer_rfm_history</code>.
+      </p>
+    </section>
+
+    {# ══════════════════════════════════════════════════════════════════ #}
+    {# ACTE 6 — Wrap-up (30 s + Q&A)                                      #}
+    {# ══════════════════════════════════════════════════════════════════ #}
+
+    {# ───── S17. Choix techniques en cards ─ 30 s ───── #}
+    <section>
+      <h2>Choix techniques justifiés</h2>
+      <div class="tech-grid">
+
+        <div class="tech-card">
+          <span class="icon">🐳</span>
+          <h4>Docker Compose</h4>
+          <p>Un seul YAML, 6 services, reproductible partout. Pas d'install système.</p>
+        </div>
+
+        <div class="tech-card">
+          <span class="icon">⚡</span>
+          <h4>uv</h4>
+          <p>Gestion Python 10× plus rapide que pip, lockfile déterministe.</p>
+        </div>
+
+        <div class="tech-card">
+          <span class="icon">🎯</span>
+          <h4>Postgres-first</h4>
+          <p>Typage dans le DDL. <code>customer_id INTEGER NULL</code> — pandas ne casse pas.</p>
+        </div>
+
+        <div class="tech-card">
+          <span class="icon">📊</span>
+          <h4>NTILE(5) en SQL</h4>
+          <p>Plus rapide que pandas, plus lisible, profite des index Postgres.</p>
+        </div>
+
+        <div class="tech-card">
+          <span class="icon">🔄</span>
+          <h4>Python + .sql séparés</h4>
+          <p>Les SQL sont versionnés indépendamment, le DAG les enchaîne via un wrapper psycopg2 minimal.</p>
+        </div>
+
+        <div class="tech-card">
+          <span class="icon">🎥</span>
+          <h4>Flask + reveal.js</h4>
+          <p>Streamlit ne fait pas de slides plein écran avec charts interactifs. reveal.js oui.</p>
+        </div>
+
+      </div>
+    </section>
+
+    {# ───── S18. Apprentissages + Q&A ───── #}
+    <section>
+      <h1>Ce qu'on retient</h1>
+      <ul class="small-list">
+        <li><strong>Le contenant avant le contenu</strong> :
+            Docker + Airflow nous donnent un socle reproductible,
+            et le pipeline vit dessus</li>
+        <li><strong>Idempotence partout</strong> :
+            chaque task repart d'un état connu, le DAG est rejouable
+            sans précaution</li>
+        <li><strong>Les vues SQL</strong> permettent d'enrichir
+            (renommage A→K, macro_segment) sans toucher au DDL initial</li>
+      </ul>
+      <br><br>
+      <h2 class="accent">Questions ?</h2>
+    </section>
+
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+  <script src="{{ url_for('static', filename='js/reveal/reveal.js') }}"></script>
+  <script>
+    Reveal.initialize({
+      hash: true,
+      controls: true,
+      progress: true,
+      slideNumber: 'c/t',
+      width: 1280,
+      height: 720,
+      margin: 0.04,
+    });
+
+    // ─── Plotly charts dans les slides ────────────────────────────
+    var treemap   = {{ treemap_fig | safe }};
+    var heatmap   = {{ heatmap_fig | safe }};
+    var movements = {{ movements_pct_fig | safe }};
+    var cfg = {responsive: true, displaylogo: false,
+               modeBarButtonsToRemove: ['lasso2d', 'select2d']};
+
+    Reveal.on('ready', function() {
+      Plotly.newPlot('treemap-slide',   treemap.data,   treemap.layout,   cfg);
+      Plotly.newPlot('heatmap-slide',   heatmap.data,   heatmap.layout,   cfg);
+      Plotly.newPlot('movements-slide', movements.data, movements.layout, cfg);
+
+      // Bind du bouton trigger (existe dès le ready)
+      var btn = document.getElementById('btnTrigger');
+      if (btn) btn.addEventListener('click', triggerDag);
+    });
+
+    // ─── Démo Airflow live ────────────────────────────────────────
+    var pollHandle = null;
+
+    async function checkHealth() {
+      try {
+        var r = await fetch('/api/airflow/health');
+        var j = await r.json();
+        var elem = document.getElementById('afHealth');
+        if (!elem) return;
+        if (j.ok) {
+          elem.textContent = '✓ Airflow up · scheduler ' + j.scheduler;
+          elem.style.color = '#7ee787';
+        } else {
+          elem.textContent = '✗ Airflow KO · ' + (j.error || 'unknown');
+          elem.style.color = '#ffa198';
+        }
+      } catch (e) {
+        var elem = document.getElementById('afHealth');
+        if (elem) { elem.textContent = '✗ ' + e.message; elem.style.color = '#ffa198'; }
+      }
+    }
+
+    function renderPanel(data) {
+      // Ne met à jour le panel S12 que s'il est présent dans le DOM.
+      var header = document.getElementById('runHeader');
+      var list   = document.getElementById('taskList');
+      if (!header || !list) return;
+
+      if (!data.run) {
+        header.textContent = 'Aucun run récupéré';
+        list.innerHTML = '';
+        return;
+      }
+      var run = data.run;
+      header.innerHTML = '<strong>' + run.dag_run_id + '</strong>'
+                       + ' · <span class="state ' + (run.state||'none') + '">' + (run.state||'?') + '</span>'
+                       + (run.start_date ? '<br><span style="font-size:0.85em">' + run.start_date + '</span>' : '');
+
+      var html = '';
+      data.tasks.forEach(function(t) {
+        var dur = t.duration ? Math.round(t.duration) + ' s' : '—';
+        html += '<div class="task-row">'
+              + '<span><code>' + t.task_id + '</code></span>'
+              + '<span>' + dur + '</span>'
+              + '<span class="state ' + (t.state||'none') + '">' + (t.state||'?') + '</span>'
+              + '</div>';
+      });
+      list.innerHTML = html;
+    }
+
+    function updateTicker(data) {
+      // Met à jour le bandeau fixed en bas de l'écran avec l'état courant
+      // du dernier run. Appelé à chaque poll, quelle que soit la slide.
+      var stateEl = document.getElementById('tickerState');
+      var curEl   = document.getElementById('tickerCurrent');
+      var durEl   = document.getElementById('tickerDuration');
+      if (!stateEl) return;
+
+      if (!data.run) {
+        stateEl.textContent = 'idle';
+        stateEl.className = 'state';
+        curEl.textContent = '—';
+        durEl.textContent = '';
+        return;
+      }
+
+      var runState = data.run.state || 'unknown';
+      stateEl.textContent = runState;
+      stateEl.className = 'state ' + runState;
+
+      // Task actuelle : en priorité celle qui est running, sinon la dernière
+      // qui a un état défini.
+      var current = null;
+      for (var i = 0; i < data.tasks.length; i++) {
+        if (data.tasks[i].state === 'running') { current = data.tasks[i]; break; }
+      }
+      if (!current) {
+        for (var j = data.tasks.length - 1; j >= 0; j--) {
+          if (data.tasks[j].state) { current = data.tasks[j]; break; }
+        }
+      }
+
+      if (current) {
+        curEl.textContent = current.task_id;
+        durEl.textContent = current.duration ? Math.round(current.duration) + 's' : '…';
+      } else {
+        curEl.textContent = '—';
+        durEl.textContent = '';
+      }
+    }
+
+    async function pollLatestRun() {
+      try {
+        var r = await fetch('/api/airflow/runs/latest');
+        var j = await r.json();
+        renderPanel(j);
+        updateTicker(j);
+        // Stoppe le polling 5 s après la fin d'un run
+        if (j.run && j.run.state && (j.run.state === 'success' || j.run.state === 'failed')) {
+          if (pollHandle) {
+            setTimeout(function() {
+              if (pollHandle) { clearInterval(pollHandle); pollHandle = null; }
+            }, 5000);
+          }
+        }
+      } catch (e) { /* silencieux */ }
+    }
+
+    async function triggerDag() {
+      var btn = document.getElementById('btnTrigger');
+      if (!btn) return;
+      btn.disabled = true;
+      btn.textContent = '⏳ Trigger…';
+      try {
+        var r = await fetch('/api/airflow/trigger', {method: 'POST'});
+        var j = await r.json();
+        if (j.ok) {
+          btn.textContent = '✓ Triggered (' + j.dag_run_id + ')';
+        } else {
+          btn.textContent = '✗ ' + (j.error || 'erreur');
+        }
+        if (pollHandle) clearInterval(pollHandle);
+        pollLatestRun();
+        pollHandle = setInterval(pollLatestRun, 3000);
+        setTimeout(function() {
+          btn.disabled = false;
+          btn.textContent = '▶ Trigger DAG';
+        }, 30000);
+      } catch (e) {
+        btn.textContent = '✗ ' + e.message;
+        btn.disabled = false;
+      }
+    }
+
+    // ─── Gestion du ticker et du polling au changement de slide ──
+    Reveal.on('slidechanged', function(event) {
+      // Resize les Plotly charts qui sont visibles
+      ['treemap-slide', 'heatmap-slide', 'movements-slide'].forEach(function(id) {
+        var el = document.getElementById(id);
+        if (el && el.data) Plotly.Plots.resize(el);
+      });
+
+      // Afficher/masquer le ticker Airflow selon la slide
+      var showTicker = event.currentSlide.dataset.airflowTicker === 'true';
+      var ticker = document.getElementById('airflow-ticker');
+      if (showTicker) {
+        if (ticker) ticker.classList.add('visible');
+        checkHealth();
+        pollLatestRun();
+        if (!pollHandle) pollHandle = setInterval(pollLatestRun, 3000);
+      } else {
+        if (ticker) ticker.classList.remove('visible');
+        if (pollHandle) { clearInterval(pollHandle); pollHandle = null; }
+      }
+    });
+  </script>
+{% endblock %}

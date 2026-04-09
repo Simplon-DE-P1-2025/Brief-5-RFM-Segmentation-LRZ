@@ -1,0 +1,36 @@
+{# Fragment HTMX : table des clients filtrés. #}
+<div class="table-responsive">
+  <table class="table table-sm table-striped table-hover mb-0 align-middle">
+    <thead class="table-dark sticky-top">
+      <tr>
+        <th>Client</th>
+        <th class="text-end">Recency (j)</th>
+        <th class="text-end">Frequency</th>
+        <th class="text-end">Monetary (£)</th>
+        <th>Segment</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for c in customers %}
+      <tr>
+        <td><code>{{ c.customer_id }}</code></td>
+        <td class="text-end">{{ c.recency }}</td>
+        <td class="text-end">{{ c.frequency }}</td>
+        <td class="text-end">{{ "{:,.0f}".format(c.monetary|float).replace(",", " ") }}</td>
+        <td><span class="badge bg-secondary">{{ c.segment }}</span></td>
+      </tr>
+      {% else %}
+      <tr><td colspan="5" class="text-center text-muted py-4">Aucun client (essayez d'ajuster les filtres).</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% if selected_segments %}
+<div class="card-footer text-muted small">
+  Filtres actifs : {{ selected_segments | join(", ") }} — {{ customers|length }} ligne(s)
+</div>
+{% else %}
+<div class="card-footer text-muted small">
+  Sans filtre — {{ customers|length }} ligne(s) (limité à 500)
+</div>
+{% endif %}
