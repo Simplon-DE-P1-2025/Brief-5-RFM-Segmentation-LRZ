@@ -210,3 +210,6 @@ __marimo__/
 Romain/
 
 .codex
+
+logs/*
+!logs/.gitkeep
