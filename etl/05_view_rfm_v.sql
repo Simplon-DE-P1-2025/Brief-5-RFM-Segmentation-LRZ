@@ -13,9 +13,12 @@
 --
 -- Mapping macro segment validé en session 2026-04-08 :
 --   A.LOYAL     = Champions + Loyal Customers + Potential Loyalist
---   B.PROMISING = New Customers + Promising + Need Attention
+--   B.PROMISING = Recent Customers + Promising + Need Attention
 --   C.SLEEP     = About to Sleep + At Risk + Cannot Lose Them
 --   D.LOST      = Hibernating + Lost
+--
+-- Note 2026-04-09 : 'Recent Customers' remplace l'ancien 'New Customers'
+-- suite au refactor de 04_segments.sql vers 11 segments par codes RFM.
 --
 -- Idempotent : CREATE OR REPLACE.
 -- ════════════════════════════════════════════════════════════════════
@@ -59,7 +62,7 @@ SELECT
         WHEN 'Champions'          THEN 'A.CHAMPIONS'
         WHEN 'Loyal Customers'    THEN 'B.LOYAL'
         WHEN 'Potential Loyalist' THEN 'C.POTENTIAL_LOYALIST'
-        WHEN 'New Customers'      THEN 'D.RECENT_CUSTOMERS'
+        WHEN 'Recent Customers'      THEN 'D.RECENT_CUSTOMERS'
         WHEN 'Promising'          THEN 'E.PROMISING'
         WHEN 'Need Attention'     THEN 'F.NEED_ATTENTION'
         WHEN 'About to Sleep'     THEN 'G.ABOUT_TO_SLEEP'
@@ -71,7 +74,7 @@ SELECT
     CASE
         WHEN c.rfm_segment IN ('Champions', 'Loyal Customers', 'Potential Loyalist')
             THEN 'A.LOYAL'
-        WHEN c.rfm_segment IN ('New Customers', 'Promising', 'Need Attention')
+        WHEN c.rfm_segment IN ('Recent Customers', 'Promising', 'Need Attention')
             THEN 'B.PROMISING'
         WHEN c.rfm_segment IN ('About to Sleep', 'At Risk', 'Cannot Lose Them')
             THEN 'C.SLEEP'
