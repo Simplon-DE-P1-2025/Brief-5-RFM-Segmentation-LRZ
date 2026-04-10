@@ -80,7 +80,7 @@ x-airflow-common:
     - ${AIRFLOW_PROJ_DIR:-.}/config:/opt/airflow/config
     - ${AIRFLOW_PROJ_DIR:-.}/plugins:/opt/airflow/plugins
     - ${AIRFLOW_PROJ_DIR:-.}/etl:/opt/airflow/etl # ajout pour que le script soit visible depuis le container airflow
-    - ${AIRFLOW_PROJ_DIR:-.}/data:/opt/airflow/data
+    - ${AIRFLOW_PROJ_DIR:-.}/data:/opt/airflow/data # source xlsx pour ingest_xlsx
   user: "${AIRFLOW_UID:-50000}:0"
   depends_on:
     &airflow-common-depends-on
@@ -372,6 +372,9 @@ services:
         condition: service_healthy
     environment:
       RFM_DB_CONN: postgresql+psycopg2://rfm_user:rfm_pass@postgres/rfm_db
+      AIRFLOW_BASE_URL: http://airflow-apiserver:8080
+      AIRFLOW_USER: ${_AIRFLOW_WWW_USER_USERNAME:-airflow}
+      AIRFLOW_PASSWORD: ${_AIRFLOW_WWW_USER_PASSWORD:-airflow}
     ports:
       - "8501:8501"
     restart: unless-stopped

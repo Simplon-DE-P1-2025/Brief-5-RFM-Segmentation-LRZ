@@ -6,15 +6,20 @@
 -- utilisant **uniquement** les ventes ≤ snapshot_date. Reapplique
 -- ensuite NTILE(5) puis le CASE WHEN des 11 segments + macros.
 --
--- Résultat : analytics.customer_rfm_history (~24 × ~5 850 ≈ 140 K lignes)
+-- Résultat : analytics.customer_rfm_history (~25 snapshots × ~4 415
+-- clients moyens ≈ 97 K lignes — moins que 25×5 852 car un client
+-- n'apparaît dans un snapshot qu'à partir de sa première vente)
 --
 -- il alimente les pages Movements (% par macro × mois) et Cohorts (KPIs par mois
 -- d'acquisition) du dashboard  — visualisations IMPOSSIBLES à
 -- produire avec le snapshot unique de analytics.customer_rfm.
 --
 -- Pré-requis :
---   - clean.sales rempli 
---   - analytics.customer_rfm rempli 
+--   - clean.sales rempli
+--   - analytics.customer_rfm rempli
+--   - analytics.fn_rfm_segment et analytics.fn_rfm_macro installées
+--     (etl/00_functions.sql) — source de vérité unique partagée avec
+--     04_segments.sql et 05_view_rfm_v.sql
 --
 -- Idempotent : CREATE IF NOT EXISTS + TRUNCATE + INSERT.
 --
@@ -65,7 +70,9 @@ WITH months AS (
 snapshot_raw AS (
     -- Pour chaque (mois, client) : recency / frequency / monetary calculés
     -- en utilisant uniquement les ventes ≤ snapshot_date.
-    -- ⚠️ produit ~24 × 5852 ≈ 140 K lignes après agrégation.
+    -- ⚠️ produit ~97 K lignes après agrégation (25 snapshots × ~4 415
+    -- clients moyens — plus faible que 25×5852 car les premiers mois
+    -- n'incluent que les clients ayant déjà acheté).
     SELECT
         m.snapshot_date,
         s.customer_id,
@@ -94,9 +101,10 @@ scored AS (
 ),
 
 labeled AS (
-    -- Applique le même CASE WHEN que 04_segments.sql
-    -- (ordre spécifique → général, indispensable pour ne pas absorber les
-    -- sous-ensembles New Customers / Promising / Cannot Lose Them)
+    -- Délègue à analytics.fn_rfm_segment (etl/00_functions.sql) pour
+    -- partager la même source de vérité que 04_segments.sql.
+    -- Auparavant, ce CTE contenait un CASE WHEN 56 lignes copié-collé
+    -- de 04_segments.sql — risque permanent de divergence.
     SELECT
         snapshot_date,
         customer_id,
@@ -106,67 +114,7 @@ labeled AS (
         r_score,
         f_score,
         m_score,
-        -- CASE WHEN 11 segments harmonisé avec 04_segments.sql
-        -- (ordre spécifique → général, codes RFM concaténés avec cast ::TEXT
-        -- car r_score/f_score/m_score sont INTEGER et l'opérateur || n'existe
-        -- pas nativement pour integer || integer en PostgreSQL).
-        CASE
-            -- CHAMPIONS
-            WHEN r_score::TEXT || f_score::TEXT || m_score::TEXT IN ('555','554','544','545','454','455','445')
-                THEN 'Champions'
-
-            -- LOYAL
-            WHEN r_score::TEXT || f_score::TEXT || m_score::TEXT IN ('543','444','435','355','354','345','344','335')
-                THEN 'Loyal Customers'
-
-            -- POTENTIAL LOYALIST
-            WHEN r_score::TEXT || f_score::TEXT || m_score::TEXT IN (
-                '553','551','552','541','542','533','532','531','452','451',
-                '442','441','431','453','433','432','423','353','352','351',
-                '342','341','333','323'
-            ) THEN 'Potential Loyalist'
-
-            -- RECENT CUSTOMERS
-            WHEN r_score::TEXT || f_score::TEXT || m_score::TEXT IN ('512','511','422','421','412','411','311')
-                THEN 'Recent Customers'
-
-            -- PROMISING
-            WHEN r_score::TEXT || f_score::TEXT || m_score::TEXT IN (
-                '525','524','523','522','521','515','514','513','425','424',
-                '413','414','415','315','314','313'
-            ) THEN 'Promising'
-
-            -- NEED ATTENTION
-            WHEN r_score::TEXT || f_score::TEXT || m_score::TEXT IN ('535','534','443','434','343','334','325','324')
-                THEN 'Need Attention'
-
-            -- ABOUT TO SLEEP
-            WHEN r_score::TEXT || f_score::TEXT || m_score::TEXT IN ('331','321','312','221','213','231','241','251')
-                THEN 'About to Sleep'
-
-            -- AT RISK
-            WHEN r_score::TEXT || f_score::TEXT || m_score::TEXT IN (
-                '255','254','245','244','253','252','243','242','235',
-                '234','225','224','153','152','145','143','142','135','134',
-                '133','125','124'
-            ) THEN 'At Risk'
-
-            -- CANNOT LOSE THEM
-            WHEN r_score::TEXT || f_score::TEXT || m_score::TEXT IN ('155','154','144','214','215','115','114','113')
-                THEN 'Cannot Lose Them'
-
-            -- HIBERNATING (sans '231','241','251' — déjà dans About to Sleep)
-            WHEN r_score::TEXT || f_score::TEXT || m_score::TEXT IN (
-                '332','322','233','232','223','222','132',
-                '123','122','212','211'
-            ) THEN 'Hibernating'
-
-            -- LOST
-            WHEN r_score::TEXT || f_score::TEXT || m_score::TEXT IN ('111','112','121','131','141','151')
-                THEN 'Lost'
-
-            ELSE 'Unclassified'
-        END AS rfm_segment
+        analytics.fn_rfm_segment(r_score, f_score, m_score) AS rfm_segment
     FROM scored
 )
 
@@ -184,11 +132,9 @@ SELECT
     f_score,
     m_score,
     rfm_segment,
-    -- Mapping vers les 4 macro segments (A.LOYAL / B.PROMISING / C.SLEEP / D.LOST)
-    CASE
-        WHEN rfm_segment IN ('Champions', 'Loyal Customers', 'Potential Loyalist') THEN 'A.LOYAL'
-        WHEN rfm_segment IN ('Recent Customers', 'Promising', 'Need Attention')        THEN 'B.PROMISING'
-        WHEN rfm_segment IN ('About to Sleep', 'At Risk', 'Cannot Lose Them')       THEN 'C.SLEEP'
-        WHEN rfm_segment IN ('Hibernating', 'Lost')                                  THEN 'D.LOST'
-    END AS macro_segment
+    -- Délègue à analytics.fn_rfm_macro (etl/00_functions.sql) — source
+    -- de vérité partagée avec 05_view_rfm_v.sql. Inclut un fallback
+    -- 'Z.UNCLASSIFIED' qui satisfait la contrainte NOT NULL de la
+    -- colonne macro_segment (cf. ligne 40).
+    analytics.fn_rfm_macro(rfm_segment) AS macro_segment
 FROM labeled;

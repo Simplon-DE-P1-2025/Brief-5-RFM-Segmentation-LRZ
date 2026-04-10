@@ -104,21 +104,22 @@
 
     /* ─── Acte 2 : Dockerfile layers stack (S7) ───────────────────────── */
     .reveal .dockerfile-stack {
-      display: flex; flex-direction: column; gap: 0.35em;
-      max-width: 88%; margin: 0 auto; text-align: left;
+      display: flex; flex-direction: column; gap: 0.22em;
+      max-width: 92%; margin: 0 auto; text-align: left;
     }
     .reveal .layer {
-      display: grid; grid-template-columns: 1.5fr 2fr;
-      gap: 0.8em; align-items: center;
+      display: grid; grid-template-columns: 1.4fr 2.2fr;
+      gap: 0.7em; align-items: center;
       background: linear-gradient(90deg, #21262d 0%, #1a1f26 100%);
       border: 1px solid #30363d; border-left: 3px solid #58a6ff;
-      padding: 0.5em 0.85em; border-radius: 0.3em;
+      padding: 0.32em 0.75em; border-radius: 0.3em;
     }
     .reveal .layer .instr {
-      color: #79c0ff; font-family: 'SF Mono', Menlo, monospace; font-size: 0.42em;
+      color: #79c0ff; font-family: 'SF Mono', Menlo, monospace; font-size: 0.36em;
+      line-height: 1.3;
     }
     .reveal .layer .why {
-      color: #c9d1d9; font-size: 0.42em;
+      color: #c9d1d9; font-size: 0.36em; line-height: 1.3;
     }
     .reveal .layer.base   { border-left-color: #58a6ff; }
     .reveal .layer.tool   { border-left-color: #7ee787; }
@@ -255,22 +256,27 @@
     }
     .reveal .tech-card p { font-size: 0.38em; color: #8b949e; margin: 0; line-height: 1.45; }
 
-    /* ─── Placeholder SVG (avant qu'excalidraw soit dessiné) ──────────── */
-    .reveal .svg-placeholder {
-      border: 2px dashed #4d4d4d; padding: 2.5em 1.5em; border-radius: 0.5em;
-      max-width: 75%; margin: 0 auto; text-align: center;
-      background: repeating-linear-gradient(45deg, #191919, #191919 10px, #1e1e1e 10px, #1e1e1e 20px);
+    /* ─── Acte 4 : "Pendant que ça tourne" — 3 cartes qui se remplacent ─ */
+    .reveal .piege-stack {
+      position: relative; width: 100%; min-height: 520px;
+      margin: 0 auto; text-align: left;
     }
-    .reveal .svg-placeholder .tag {
-      display: inline-block; padding: 0.2em 0.8em; border-radius: 0.3em;
-      background: #2d2d2d; color: #ffa657; font-size: 0.4em;
-      text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 0.6em;
+    .reveal .piege-card {
+      position: absolute; inset: 0; display: flex; flex-direction: column;
+      gap: 0.2em; padding: 0.2em 0.4em;
     }
-    .reveal .svg-placeholder .desc {
-      color: #c9d1d9; font-size: 0.52em; margin: 0.5em 0 0.3em 0;
+    .reveal .piege-card h4 {
+      font-size: 0.52em; color: #79c0ff; margin: 0 0 0.15em;
+      text-transform: none; font-weight: 600;
     }
-    .reveal .svg-placeholder .hint {
-      color: #6e7681; font-size: 0.38em; font-style: italic;
+    .reveal .piege-card pre.ascii { font-size: 0.35em; margin: 0.15em 0; }
+    .reveal .piege-card .small-list { margin: 0.3em 0 0 0; }
+    .reveal .piege-card .footnote { margin: 0.3em 0 0 0; }
+
+    /* ─── Architecture SVG inline ─────────────────────────────────────── */
+    .reveal .arch-svg {
+      display: block; margin: 0.4em auto 0; width: 100%;
+      max-width: 820px; max-height: 560px;
     }
     .reveal .slide-svg {
       max-width: 85%; max-height: 560px; margin: 0 auto; display: block;
@@ -307,8 +313,8 @@
       <br>
       <p class="footnote">
         <span class="pill">Docker Compose</span>
-        <span class="pill">Apache Airflow 2.9</span>
-        <span class="pill">Postgres 15</span>
+        <span class="pill">Apache Airflow 3.1</span>
+        <span class="pill">Postgres 16</span>
         <span class="pill">Flask + reveal.js</span>
         <span class="pill">Plotly</span>
       </p>
@@ -339,25 +345,121 @@
     {# ───── S3. Architecture vue d'ensemble ─ 1 min ───── #}
     <section>
       <h2>Architecture — vue d'ensemble</h2>
-      {# Placeholder tant que architecture_overview.svg n'est pas dessiné.
-         Pour le remplacer, dessiner sur excalidraw.com, exporter en SVG,
-         déposer dans dashboard/static/img/presentation/, puis remplacer
-         le bloc ci-dessous par :
+      {# SVG inline — architecture end-to-end. Pour un rendu plus "sketch",
+         remplacer ce <svg> par :
          <img src="{{ url_for('static', filename='img/presentation/architecture_overview.svg') }}"
               alt="Architecture" class="slide-svg"> #}
-      <div class="svg-placeholder">
-        <div class="tag">SVG à dessiner</div>
-        <div class="desc">
-          3 boîtes verticales :
-          <span class="accent-org">Data XLSX 1,07 M</span> →
-          <span class="accent-grn">Docker Compose (Postgres + Airflow + Dashboard)</span> →
-          <span class="accent">Dashboard Flask + reveal.js</span>
-        </div>
-        <div class="hint">
-          excalidraw.com · style sketch · export SVG · filename
-          <code>architecture_overview.svg</code>
-        </div>
-      </div>
+      <svg class="arch-svg" viewBox="0 0 900 540" xmlns="http://www.w3.org/2000/svg"
+           role="img" aria-label="Architecture end-to-end du pipeline RFM">
+        <defs>
+          <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5"
+                  markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="#8b949e"/>
+          </marker>
+        </defs>
+
+        {# Boîte 1 — Data source #}
+        <g>
+          <rect x="250" y="20" width="400" height="80" rx="8" ry="8"
+                fill="#161b22" stroke="#ffa657" stroke-width="2"/>
+          <text x="450" y="50" text-anchor="middle"
+                font-family="SF Mono, Menlo, Consolas, monospace"
+                font-size="18" font-weight="600" fill="#ffa657">Data · Online Retail II</text>
+          <text x="450" y="78" text-anchor="middle"
+                font-family="SF Mono, Menlo, Consolas, monospace"
+                font-size="14" fill="#8b949e">online_retail_II.xlsx · 1,07 M lignes · 2 ans</text>
+        </g>
+
+        {# Flèche 1 → 2 #}
+        <line x1="450" y1="100" x2="450" y2="140"
+              stroke="#8b949e" stroke-width="2" marker-end="url(#arrow)"/>
+        <text x="462" y="125" font-family="SF Mono, Menlo, Consolas, monospace"
+              font-size="12" fill="#6e7681">ingest_xlsx</text>
+
+        {# Boîte 2 — Docker Compose stack #}
+        <g>
+          <rect x="120" y="150" width="660" height="240" rx="10" ry="10"
+                fill="#161b22" stroke="#7ee787" stroke-width="2"/>
+          <text x="450" y="182" text-anchor="middle"
+                font-family="SF Mono, Menlo, Consolas, monospace"
+                font-size="18" font-weight="600" fill="#7ee787">Docker Compose · 1 stack, 10 services</text>
+
+          {# Sous-bloc Postgres #}
+          <rect x="150" y="210" width="180" height="150" rx="6" ry="6"
+                fill="#0d1117" stroke="#30363d" stroke-width="1"/>
+          <text x="240" y="238" text-anchor="middle"
+                font-family="SF Mono, Menlo, Consolas, monospace"
+                font-size="15" font-weight="600" fill="#79c0ff">Postgres 16</text>
+          <text x="240" y="268" text-anchor="middle"
+                font-family="SF Mono, Menlo, Consolas, monospace"
+                font-size="12" fill="#8b949e">raw · clean</text>
+          <text x="240" y="288" text-anchor="middle"
+                font-family="SF Mono, Menlo, Consolas, monospace"
+                font-size="12" fill="#8b949e">analytics</text>
+          <text x="240" y="318" text-anchor="middle"
+                font-family="SF Mono, Menlo, Consolas, monospace"
+                font-size="11" fill="#6e7681">NTILE(5) · fn_rfm_*</text>
+          <text x="240" y="342" text-anchor="middle"
+                font-family="SF Mono, Menlo, Consolas, monospace"
+                font-size="11" fill="#6e7681">customer_rfm_v</text>
+
+          {# Sous-bloc Airflow #}
+          <rect x="360" y="210" width="180" height="150" rx="6" ry="6"
+                fill="#0d1117" stroke="#30363d" stroke-width="1"/>
+          <text x="450" y="238" text-anchor="middle"
+                font-family="SF Mono, Menlo, Consolas, monospace"
+                font-size="15" font-weight="600" fill="#7ee787">Airflow 3.1</text>
+          <text x="450" y="268" text-anchor="middle"
+                font-family="SF Mono, Menlo, Consolas, monospace"
+                font-size="12" fill="#8b949e">CeleryExecutor</text>
+          <text x="450" y="288" text-anchor="middle"
+                font-family="SF Mono, Menlo, Consolas, monospace"
+                font-size="12" fill="#8b949e">DAG rfm_pipeline</text>
+          <text x="450" y="318" text-anchor="middle"
+                font-family="SF Mono, Menlo, Consolas, monospace"
+                font-size="11" fill="#6e7681">4 tasks · idempotentes</text>
+          <text x="450" y="342" text-anchor="middle"
+                font-family="SF Mono, Menlo, Consolas, monospace"
+                font-size="11" fill="#6e7681">_truncate_downstream</text>
+
+          {# Sous-bloc Dashboard #}
+          <rect x="570" y="210" width="180" height="150" rx="6" ry="6"
+                fill="#0d1117" stroke="#30363d" stroke-width="1"/>
+          <text x="660" y="238" text-anchor="middle"
+                font-family="SF Mono, Menlo, Consolas, monospace"
+                font-size="15" font-weight="600" fill="#d2a8ff">Dashboard Flask</text>
+          <text x="660" y="268" text-anchor="middle"
+                font-family="SF Mono, Menlo, Consolas, monospace"
+                font-size="12" fill="#8b949e">queries.py</text>
+          <text x="660" y="288" text-anchor="middle"
+                font-family="SF Mono, Menlo, Consolas, monospace"
+                font-size="12" fill="#8b949e">Plotly + reveal.js</text>
+          <text x="660" y="318" text-anchor="middle"
+                font-family="SF Mono, Menlo, Consolas, monospace"
+                font-size="11" fill="#6e7681">treemap · heatmap</text>
+          <text x="660" y="342" text-anchor="middle"
+                font-family="SF Mono, Menlo, Consolas, monospace"
+                font-size="11" fill="#6e7681">movements · présentation</text>
+        </g>
+
+        {# Flèche 2 → 3 #}
+        <line x1="450" y1="390" x2="450" y2="430"
+              stroke="#8b949e" stroke-width="2" marker-end="url(#arrow)"/>
+        <text x="462" y="415" font-family="SF Mono, Menlo, Consolas, monospace"
+              font-size="12" fill="#6e7681">HTTP · port 8501</text>
+
+        {# Boîte 3 — Browser #}
+        <g>
+          <rect x="250" y="440" width="400" height="80" rx="8" ry="8"
+                fill="#161b22" stroke="#58a6ff" stroke-width="2"/>
+          <text x="450" y="470" text-anchor="middle"
+                font-family="SF Mono, Menlo, Consolas, monospace"
+                font-size="18" font-weight="600" fill="#58a6ff">Browser · soutenance</text>
+          <text x="450" y="498" text-anchor="middle"
+                font-family="SF Mono, Menlo, Consolas, monospace"
+                font-size="14" fill="#8b949e">dashboards · charts · cette présentation</text>
+        </g>
+      </svg>
       <p class="footnote" style="margin-top:1.5em;">
         Tout tient dans un seul <code>docker compose up -d</code>.
         Objectif : reproductibilité zéro friction.
@@ -370,11 +472,11 @@
       <div class="kpi-grid">
         <div class="kpi-cell">
           <div class="lbl">Lignes brutes</div>
-          <div class="val">{{ "{:,}".format(1067371).replace(",", " ") }}</div>
+          <div class="val">{{ "{:,}".format(kpi_bar.total_raw_lines).replace(",", " ") }}</div>
         </div>
         <div class="kpi-cell">
           <div class="lbl">Ventes propres</div>
-          <div class="val">{{ "{:,}".format(802637).replace(",", " ") }}</div>
+          <div class="val">{{ "{:,}".format(kpi_bar.total_clean_lines).replace(",", " ") }}</div>
         </div>
         <div class="kpi-cell">
           <div class="lbl">Clients RFM</div>
@@ -409,73 +511,61 @@
       <h2>Ce qu'on a écrit</h2>
       <pre class="file-tree">
 Brief-5-RFM-Segmentation-LRZ/
-├── <span class="docker">docker-compose.yml</span>       <span class="meta"># 6 services : postgres, airflow×3, etl, dashboard</span>
-├── <span class="docker">Dockerfile</span>               <span class="meta"># image ETL custom (uv + python 3.11-slim)</span>
-├── <span class="code">pyproject.toml</span>           <span class="meta"># deps Python (gérées avec uv)</span>
-├── <span class="code">uv.lock</span>                  <span class="meta"># lockfile reproductible</span>
-├── <span class="code">init-db.sql</span>              <span class="meta"># DDL schemas raw/clean/analytics</span>
 │
-├── <span class="dir">dags/</span>
-│   └── <span class="code">rfm_pipeline.py</span>       <span class="meta"># DAG Airflow : 4 tasks</span>
+├── <span class="docker">docker-compose.yaml</span>   <span class="meta"># 10 services : stack complète en 1 fichier</span>
+├── <span class="docker">Dockerfile</span>            <span class="meta"># image ETL custom (uv + python 3.11-slim)</span>
 │
-├── <span class="dir">etl/</span>
-│   ├── <span class="code">ingest.py</span>             <span class="meta"># task 1 : xlsx → COPY → raw</span>
-│   ├── <span class="code">02_clean.sql</span>          <span class="meta"># task 2 : cascade exclusive</span>
-│   ├── <span class="code">03_rfm.sql</span>            <span class="meta"># task 2 : NTILE(5)</span>
-│   ├── <span class="code">04_segments.sql</span>       <span class="meta"># task 3 : CASE WHEN → 11 segments</span>
-│   ├── <span class="code">05_view_rfm_v.sql</span>     <span class="meta"># task 3 : vue enrichissement</span>
-│   └── <span class="code">06_history.sql</span>        <span class="meta"># task 4 : snapshot mensuel ★</span>
+├── <span class="dir">dags/</span> + <span class="dir">etl/</span>          <span class="meta"># orchestration + SQL (6 fichiers numérotés 01→06)</span>
+│   └── <span class="code">rfm_pipeline.py</span>    <span class="meta"># 4 tasks Airflow idempotentes</span>
 │
-├── <span class="dir">dashboard/</span>
-│   ├── <span class="docker">Dockerfile</span>             <span class="meta"># image Flask + gunicorn</span>
-│   ├── <span class="code">app.py</span>                <span class="meta"># 11 routes + proxy API Airflow</span>
-│   ├── <span class="code">queries.py</span> <span class="code">charts.py</span>  <span class="meta"># couche data + builders Plotly</span>
-│   └── <span class="dir">templates/</span>           <span class="meta"># 10 templates Jinja (vous êtes ici)</span>
+├── <span class="dir">dashboard/</span>            <span class="meta"># Flask + Plotly + reveal.js (vous êtes ici)</span>
+│   ├── <span class="code">app.py</span> <span class="code">queries.py</span> <span class="meta"># routes + couche data</span>
+│   └── <span class="dir">templates/</span>        <span class="meta"># 12 templates Jinja dont presentation.html</span>
 │
-└── <span class="data">data/</span>
-    └── online_retail_II.xlsx   <span class="meta"># 1,07 M lignes, source statique</span>
+└── <span class="data">data/</span> online_retail_II.xlsx   <span class="meta"># 1,07 M lignes, source statique</span>
       </pre>
       <p class="footnote" style="margin-top:0.8em;">
-        Tout le reste — Postgres, Airflow, openpyxl, gunicorn — est
-        fourni par Docker. Aucune install système requise.
+        3 répertoires, 1 principe : <strong>un fichier = une responsabilité</strong>.
+        Tout le reste (Postgres, Airflow, gunicorn) est fourni par Docker,
+        zéro install système.
       </p>
     </section>
 
     {# ───── S6. docker-compose.yml ─ 1 min 15 ───── #}
     <section>
-      <h2><code>docker-compose.yml</code> — 6 services</h2>
+      <h2><code>docker-compose.yaml</code> — 10 services (stack Celery)</h2>
       <div class="compose-grid">
 
         <div class="service-card postgres">
           <h4><span class="icon">🐘</span> postgres</h4>
-          <p class="meta">image : <code>postgres:15</code></p>
+          <p class="meta">image : <code>postgres:16</code></p>
           <p class="meta">port : <code>5432</code></p>
           <p class="meta">volume : <code>postgres_data</code></p>
           <p class="meta">⚡ 2 bases : <code>airflow</code> + <code>rfm_db</code></p>
         </div>
 
-        <div class="service-card airflow">
-          <h4><span class="icon">⚙</span> airflow-init</h4>
-          <p class="meta">image : <code>apache/airflow:2.9.1</code></p>
-          <p class="meta">entrypoint : <code>db migrate + users create</code></p>
-          <p class="meta">restart : <code>no</code> (one-shot)</p>
-          <p class="meta">depends : postgres healthy</p>
+        <div class="service-card postgres">
+          <h4><span class="icon">📮</span> redis</h4>
+          <p class="meta">image : <code>redis:7.2-bookworm</code></p>
+          <p class="meta">port : <code>6379</code> (expose only)</p>
+          <p class="meta">rôle : broker Celery</p>
+          <p class="meta">healthcheck : <code>redis-cli ping</code></p>
         </div>
 
         <div class="service-card airflow">
-          <h4><span class="icon">🖥</span> airflow-webserver</h4>
-          <p class="meta">image : <code>apache/airflow:2.9.1</code></p>
-          <p class="meta">port : <code>8080</code> (UI + API REST)</p>
-          <p class="meta">volumes : <code>./dags ./etl ./data</code></p>
-          <p class="meta">auth : basic + session</p>
+          <h4><span class="icon">🖥</span> airflow-apiserver</h4>
+          <p class="meta">image : <code>apache/airflow:3.1.0</code> (custom)</p>
+          <p class="meta">port : <code>8080</code> (UI + API REST v2)</p>
+          <p class="meta">volumes : <code>./dags ./etl ./config ./plugins ./logs</code></p>
+          <p class="meta">auth : FAB (airflow / airflow)</p>
         </div>
 
         <div class="service-card airflow">
           <h4><span class="icon">⏱</span> airflow-scheduler</h4>
-          <p class="meta">image : <code>apache/airflow:2.9.1</code></p>
+          <p class="meta">image : <code>apache/airflow:3.1.0</code> (custom)</p>
           <p class="meta">command : <code>scheduler</code></p>
-          <p class="meta">executor : <code>LocalExecutor</code></p>
-          <p class="meta">surveille le dossier <code>dags/</code></p>
+          <p class="meta">executor : <code>CeleryExecutor</code></p>
+          <p class="meta">+ dag-processor / worker / triggerer / init</p>
         </div>
 
         <div class="service-card etl">
@@ -496,18 +586,20 @@ Brief-5-RFM-Segmentation-LRZ/
 
       </div>
       <p class="footnote" style="margin-top:1em;">
-        Un seul YAML, 6 services, un seul <code>docker compose up -d</code> —
-        Postgres héberge <strong>deux bases</strong> : <code>airflow</code>
-        (méta) et <code>rfm_db</code> (données métier).
+        Un seul YAML, 10 services, un seul <code>docker compose up -d</code> —
+        le stack Celery ajoute <code>redis</code> (broker) et 4 rôles Airflow
+        séparés (<em>dag-processor, worker, triggerer, init</em>) en plus
+        de l'<code>apiserver</code> et du <code>scheduler</code> illustrés
+        ci-dessus. Postgres héberge <strong>deux bases</strong> :
+        <code>airflow</code> (méta) et <code>rfm_db</code> (données métier).
       </p>
     </section>
 
     {# ───── S7. Dockerfile décortiqué en couches ─ 1 min 30 ───── #}
     <section>
-      <h2><code>Dockerfile</code> — la pile de couches</h2>
-      <p class="footnote" style="margin:-0.6em 0 1em 0;">
-        Chaque instruction = un layer Docker cacheable.
-        L'ordre des <code>COPY</code> est <em>capital</em> pour le cache.
+      <h2 style="margin-bottom:0.2em;"><code>Dockerfile</code> — la pile de couches</h2>
+      <p class="footnote" style="margin:0 0 0.55em 0;">
+        Chaque instruction = un layer cacheable · l'ordre des <code>COPY</code> est <em>capital</em>.
       </p>
       <div class="dockerfile-stack">
 
@@ -580,21 +672,25 @@ Brief-5-RFM-Segmentation-LRZ/
         <div class="fs-col">
           <h4>Dans le container airflow</h4>
           <pre>/opt/airflow/
+├── dags/           ← mappé
+│   └── rfm_pipeline.py
 ├── etl/            ← mappé
 │   ├── ingest.py
 │   ├── 02_clean.sql
 │   └── …
-├── dags/           ← mappé
-│   └── rfm_pipeline.py
-└── data/           ← mappé
-    └── online_retail_II.xlsx</pre>
+├── config/         ← mappé (airflow.cfg)
+├── plugins/        ← mappé (vide)
+└── logs/           ← mappé</pre>
         </div>
 
       </div>
       <p class="footnote" style="margin-top:1.2em;">
-        Les 3 volumes <code>./dags</code> <code>./etl</code> <code>./data</code> sont montés
-        en live : <strong>modifier un SQL ou le DAG sur l'hôte est
-        immédiatement visible dans le container</strong> — pas de rebuild.
+        Les volumes <code>./dags</code> et <code>./etl</code> sont montés
+        en live côté Airflow : <strong>modifier un SQL ou le DAG sur
+        l'hôte est immédiatement visible dans le container</strong> — pas
+        de rebuild. Le dataset <code>data/online_retail_II.xlsx</code>
+        est embarqué dans l'image ETL via <code>COPY data/ ./data/</code>
+        (voir slide suivante) et n'a donc pas besoin d'un montage.
       </p>
     </section>
 
@@ -659,11 +755,18 @@ Brief-5-RFM-Segmentation-LRZ/
     </section>
 
     {# ───── S11. Les 11 segments ─ 45 s ───── #}
+    {% set macro_bg = {
+      'A.LOYAL':     '#2c7a4b',
+      'B.PROMISING': '#3060a0',
+      'C.SLEEP':     '#6b4c9a',
+      'D.LOST':      '#c95b27'
+    } %}
     <section>
-      <h2>Les 11 segments business</h2>
+      <h2>Les 11 segments business, regroupés en 4 macros</h2>
       <table class="recap">
         <thead>
           <tr>
+            <th style="text-align:left;">Macro</th>
             <th style="text-align:left;">Segment</th>
             <th class="right">Clients</th>
             <th class="right">% Users</th>
@@ -675,6 +778,9 @@ Brief-5-RFM-Segmentation-LRZ/
         <tbody>
           {% for r in segment_kpi_table %}
           <tr>
+            <td style="text-align:left;">
+              <span class="macro-badge" style="background:{{ macro_bg.get(r.macro_segment, '#30363d') }}">{{ r.macro_segment }}</span>
+            </td>
             <td style="text-align:left;">
               <span class="seg-dot" style="background:{{ segment_colors[r.segment_label] }}"></span>
               {{ r.segment_label }}
@@ -689,11 +795,12 @@ Brief-5-RFM-Segmentation-LRZ/
         </tbody>
       </table>
       <p class="footnote" style="margin-top:0.8em;">
-        Regroupés en 4 macros :
+        Les 4 macros résument la <strong>trajectoire</strong> : de
         <span class="macro-badge" style="background:#2c7a4b">A.LOYAL</span>
-        <span class="macro-badge" style="background:#3060a0">B.PROMISING</span>
-        <span class="macro-badge" style="background:#6b4c9a">C.SLEEP</span>
+        (à fidéliser) à
         <span class="macro-badge" style="background:#c95b27">D.LOST</span>
+        (à réactiver ou lâcher). Mapping assuré par
+        <code>analytics.fn_rfm_macro</code>.
       </p>
     </section>
 
@@ -730,62 +837,64 @@ Brief-5-RFM-Segmentation-LRZ/
       </p>
     </section>
 
-    {# ───── S12a. Sous-slide : piège pandas customer_id ───── #}
+    {# ───── S12bis. Pendant que ça tourne — 3 pièges évités (fragments empilés) ─────
+       Les 3 fragments se remplacent au même endroit grâce à `fade-in-then-out`
+       + position absolute, pour éviter le débordement vertical. #}
     <section data-airflow-ticker="true">
-      <div class="sub-badge">Pendant que ça tourne · 1/3</div>
-      <h2>Le piège pandas <code>customer_id</code></h2>
-      <pre class="ascii">
-  # Ce que fait pandas par défaut
+      <div class="sub-badge">Pendant que ça tourne</div>
+      <h2 style="margin-bottom:0.3em;">3 pièges qu'on a évités</h2>
+      <div class="piege-stack">
+
+        {# ─── Carte 1 : pandas customer_id ─── #}
+        <div class="piege-card fragment fade-in-then-out">
+          <h4>1 · Le piège pandas <code>customer_id</code></h4>
+          <pre class="ascii">
   df = pd.read_excel("online_retail_II.xlsx")
   df["Customer ID"].dtype
-  # → dtype('<span class="accent-org">float64</span>')   ← 12345.0 au lieu de 12345
+  # → dtype('<span class="accent-org">float64</span>')   — 12345.0 au lieu de 12345
 
   # Conséquence : la jointure avec n'importe quelle table
   # qui a customer_id INTEGER plante silencieusement.
-      </pre>
-      <p class="small-list" style="text-align:left; margin-top:0.7em;">
-        <strong>Pourquoi</strong> : pandas caste les colonnes numériques
-        contenant des <code>NaN</code> en <code>float64</code> (les entiers
-        n'admettent pas NaN en numpy).
-      </p>
-      <p class="small-list" style="text-align:left;">
-        <strong>Notre fix</strong> : <code>customer_id INTEGER NULL</code>
-        dans le DDL Postgres → <code>COPY FROM</code> force le cast à l'entrée.
-        Pandas ne voit jamais la colonne — et ne casse donc rien.
-      </p>
-    </section>
+          </pre>
+          <p class="small-list">
+            <strong>Fix</strong> : <code>customer_id INTEGER NULL</code> dans le DDL
+            Postgres — <code>COPY FROM</code> force le cast à l'entrée,
+            pandas ne voit jamais la colonne.
+          </p>
+        </div>
 
-    {# ───── S12b. Sous-slide : ordre des CASE WHEN ───── #}
-    <section data-airflow-ticker="true">
-      <div class="sub-badge">Pendant que ça tourne · 2/3</div>
-      <h2>L'ordre des <code>CASE WHEN</code></h2>
-      <pre class="ascii">
-  -- ❌ Ce qui absorbe les sous-segments
-  CASE
-    WHEN r &gt;= 4 AND f &lt;= 3 THEN 'Potential Loyalist'   <span class="accent-org">← trop large en premier</span>
-    WHEN r = 5 AND f = 1    THEN 'New Customers'        <span class="accent-org">← jamais atteint</span>
-    ...
+        {# ─── Carte 2 : CASE WHEN — d'un patchwork fragile à une fonction IMMUTABLE ─── #}
+        <div class="piege-card fragment fade-in-then-out">
+          <h4>2 · Le <code>CASE WHEN</code> — d'un patchwork fragile à une fonction <code>IMMUTABLE</code></h4>
+          <pre class="ascii">
+  <span class="accent-org">❌ Premier jet</span> : CASE à plages — ordre-dépendant, absorbe les sous-segments
+     CASE WHEN r &gt;= 4 AND f &lt;= 3 THEN 'Potential Loyalist'   -- absorbe
+          WHEN r = 5 AND f = 1    THEN 'New Customers'        -- jamais atteint
+     → 9/11 segments peuplés, ~400 clients absorbés à tort.
 
-  -- ✅ Spécifique → général
-  CASE
-    WHEN r = 5 AND f = 1       THEN 'New Customers'
-    WHEN r &gt;= 4 AND f &lt;= 2 AND m &lt;= 2 THEN 'Promising'
-    WHEN r &gt;= 4 AND f &lt;= 3    THEN 'Potential Loyalist'
-    ...
-      </pre>
-      <p class="footnote" style="margin-top:0.8em;">
-        Sans le fix on n'avait que <strong>9/11 segments peuplés</strong> :
-        les 50 New Customers et les 364 Promising étaient absorbés
-        par Potential Loyalist. Un CASE SQL court-circuite au premier match,
-        donc l'ordre est <em>sémantique</em>, pas cosmétique.
-      </p>
-    </section>
+  <span class="accent-grn">✅ Aujourd'hui</span> : fonction SQL IMMUTABLE, 125 codes exhaustifs, zéro chevauchement
+     CREATE FUNCTION analytics.fn_rfm_segment(r INT, f INT, m INT) RETURNS TEXT
+     LANGUAGE sql IMMUTABLE AS $$
+       SELECT CASE r::TEXT || f::TEXT || m::TEXT
+         WHEN '555' THEN 'Champions'   WHEN '554' THEN 'Champions'
+         WHEN '445' THEN 'Champions'   ...  (122 autres)
+         WHEN '111' THEN 'Lost'        WHEN '151' THEN 'Lost'
+         ELSE 'Unclassified'           -- jamais atteint
+       END;
+     $$;
+          </pre>
+          <p class="footnote">
+            Les <strong>125 codes</strong> (r,f,m) ∈ {1..5}³ sont mappés exactement une fois,
+            prouvé par <code>analytics.v_rfm_codes_coverage</code>. Appelée par
+            <code>04_segments.sql</code> <em>et</em> <code>06_history.sql</code> —
+            une seule source de vérité.
+          </p>
+        </div>
 
-    {# ───── S12c. Sous-slide : idempotence Airflow ───── #}
-    <section data-airflow-ticker="true">
-      <div class="sub-badge">Pendant que ça tourne · 3/3</div>
-      <h2>Idempotence Airflow</h2>
-      <pre class="ascii">
+        {# ─── Carte 3 : idempotence Airflow ─── #}
+        <div class="piege-card fragment fade-in-then-out">
+          <h4>3 · Idempotence Airflow</h4>
+          <pre class="ascii">
   def task_transform_clean_rfm():
       <span class="accent">_truncate_downstream()</span>          # ← TRUNCATE en début de task
       _run_sql_file("02_clean.sql")
@@ -794,27 +903,26 @@ Brief-5-RFM-Segmentation-LRZ/
   # Chaque task repart d'un état connu.
   # → on peut relancer le DAG autant de fois qu'on veut
   # → pas de doublons, pas d'état résiduel
-      </pre>
-      <p class="small-list" style="text-align:left; margin-top:0.7em;">
-        <strong>Pourquoi ça compte</strong> : en production, une task
-        Airflow <em>échoue et retry</em>. Sans idempotence, un retry
-        peut doubler les insertions. Avec TRUNCATE au début, on garantit
-        que l'état final est toujours le même, quel que soit le chemin.
-      </p>
-      <p class="footnote">
-        La seule table qu'on ne TRUNCATE pas : <code>raw.online_retail</code>.
-        <code>ingest_xlsx</code> fait son propre TRUNCATE via <code>truncate=True</code>.
-      </p>
+          </pre>
+          <p class="small-list">
+            <strong>Pourquoi</strong> : en prod, une task Airflow échoue et retry.
+            Sans idempotence, un retry peut doubler les insertions — avec TRUNCATE
+            en début de task, l'état final est toujours le même.
+          </p>
+        </div>
+
+      </div>
     </section>
 
     {# ───── S13. Cascade finale : vue grid Airflow ─ 30 s ───── #}
-    <section data-airflow-ticker="true">
+    {# data-airflow-ticker retiré : l'iframe Airflow montre déjà l'état live. #}
+    <section>
       <h2>Les 3 dernières tasks en cascade <span class="accent-grn">✓</span></h2>
       <div class="iframe-wrap">
         <iframe src="{{ airflow_url }}/dags/rfm_pipeline/grid" loading="lazy"></iframe>
       </div>
       <p class="footnote">
-        admin / admin · si l'iframe est bloquée par X-Frame-Options,
+        airflow / airflow · si l'iframe est bloquée par X-Frame-Options,
         ouvrir : <a href="{{ airflow_url }}" target="_blank" class="accent">{{ airflow_url }}</a>
         · <code>transform_clean_rfm</code> → <code>load_segments</code> →
         <code>compute_rfm_history</code> en ~10 s.
@@ -825,23 +933,45 @@ Brief-5-RFM-Segmentation-LRZ/
     {# ACTE 5 — Démo dashboard (1 min 30)                                 #}
     {# ══════════════════════════════════════════════════════════════════ #}
 
-    {# ───── S14. Treemap ─ 30 s ───── #}
+    {# ───── S14. Sankey ─ 30 s ───── #}
     <section>
-      <h2>Distribution des 11 segments</h2>
-      <div id="treemap-slide" class="plotly-slide"></div>
+      <h2>Transitions inter-segments (Sankey)</h2>
+      <div style="display:flex;align-items:center;gap:.6em;justify-content:center;margin-bottom:.4em;">
+        <select id="pres-sankey-from" style="font-size:.55em;padding:.2em .4em;background:#2d333b;color:#e6edf3;border:1px solid #444c56;border-radius:4px;">
+          {% for d in snapshot_dates %}
+          <option value="{{ d }}" {% if d == default_from %}selected{% endif %}>{{ d }}</option>
+          {% endfor %}
+        </select>
+        <span style="font-size:.55em;color:#8b949e;">&rarr;</span>
+        <select id="pres-sankey-to" style="font-size:.55em;padding:.2em .4em;background:#2d333b;color:#e6edf3;border:1px solid #444c56;border-radius:4px;">
+          {% for d in snapshot_dates %}
+          <option value="{{ d }}" {% if d == default_to %}selected{% endif %}>{{ d }}</option>
+          {% endfor %}
+        </select>
+        <span style="font-size:.55em;color:#8b949e;margin-left:.4em;">|</span>
+        <label style="font-size:.5em;color:#e6edf3;cursor:pointer;margin:0;">
+          <input type="radio" name="pres-level" value="macro" checked style="margin-right:.2em;">Macro
+        </label>
+        <label style="font-size:.5em;color:#e6edf3;cursor:pointer;margin:0;">
+          <input type="radio" name="pres-level" value="detailed" style="margin-right:.2em;">Détaillé
+        </label>
+      </div>
+      <div id="sankey-slide" class="plotly-slide"></div>
       <p class="footnote">
-        Taille = nombre de clients · Couleur = monetary moyen ·
-        <strong>chart interactif</strong> (zoom, hover) directement dans la slide.
+        Flux clients entre deux snapshots mensuels · Noeud <strong>NOUVEAUX</strong> = premières apparitions ·
+        <strong>chart interactif</strong> (hover) directement dans la slide.
       </p>
     </section>
 
-    {# ───── S15. Heatmap R × F ─ 30 s ───── #}
+    {# ───── S15. Bubble Recency × Monetary par segment ─ 30 s ───── #}
     <section>
-      <h2>Heatmap Recency × Frequency</h2>
-      <div id="heatmap-slide" class="plotly-slide"></div>
+      <h2>Récence × Monetary par segment</h2>
+      <div id="bubble-slide" class="plotly-slide"></div>
       <p class="footnote">
-        Cellule (R5, F5) = clients à la fois récents et fréquents — les Champions.
-        Le gradient permet de repérer les clusters en un coup d'œil.
+        Une bulle = un des 11 segments · X = récence moyenne (jours) ·
+        Y = CA total du segment (échelle log) · taille = nombre de clients.
+        Les <strong>Champions</strong> sont en haut à gauche, les
+        <strong>Lost</strong> en bas à droite.
       </p>
     </section>
 
@@ -869,7 +999,7 @@ Brief-5-RFM-Segmentation-LRZ/
         <div class="tech-card">
           <span class="icon">🐳</span>
           <h4>Docker Compose</h4>
-          <p>Un seul YAML, 6 services, reproductible partout. Pas d'install système.</p>
+          <p>Un seul YAML, 10 services (stack Celery complet), reproductible partout. Pas d'install système.</p>
         </div>
 
         <div class="tech-card">
@@ -920,6 +1050,11 @@ Brief-5-RFM-Segmentation-LRZ/
       </ul>
       <br><br>
       <h2 class="accent">Questions ?</h2>
+      <p style="margin-top: 2em;">
+        <a href="/" style="display: inline-block; padding: 0.55em 1.2em; background: #21262d; color: #58a6ff; border: 1px solid #30363d; border-radius: 0.4em; font-size: 0.55em; text-decoration: none; letter-spacing: 0.05em;">
+          ← Retour au dashboard
+        </a>
+      </p>
     </section>
 
   </div>
@@ -940,42 +1075,86 @@ Brief-5-RFM-Segmentation-LRZ/
     });
 
     // ─── Plotly charts dans les slides ────────────────────────────
-    var treemap   = {{ treemap_fig | safe }};
-    var heatmap   = {{ heatmap_fig | safe }};
+    var sankey    = {{ sankey_fig | safe }};
+    var bubble    = {{ bubble_fig | safe }};
     var movements = {{ movements_pct_fig | safe }};
     var cfg = {responsive: true, displaylogo: false,
                modeBarButtonsToRemove: ['lasso2d', 'select2d']};
 
     Reveal.on('ready', function() {
-      Plotly.newPlot('treemap-slide',   treemap.data,   treemap.layout,   cfg);
-      Plotly.newPlot('heatmap-slide',   heatmap.data,   heatmap.layout,   cfg);
+      Plotly.newPlot('sankey-slide',    sankey.data,    sankey.layout,    cfg);
+      Plotly.newPlot('bubble-slide',    bubble.data,    bubble.layout,    cfg);
       Plotly.newPlot('movements-slide', movements.data, movements.layout, cfg);
 
       // Bind du bouton trigger (existe dès le ready)
       var btn = document.getElementById('btnTrigger');
       if (btn) btn.addEventListener('click', triggerDag);
+
+      // ─── Contrôles Sankey dans la slide ──────────────────────────
+      function refreshPresSankey() {
+        var f = document.getElementById('pres-sankey-from').value;
+        var t = document.getElementById('pres-sankey-to').value;
+        var lvl = document.querySelector('input[name="pres-level"]:checked').value;
+        fetch('/api/sankey?from=' + f + '&to=' + t + '&level=' + lvl)
+          .then(function(r) { return r.json(); })
+          .then(function(d) { Plotly.react('sankey-slide', d.data, d.layout, cfg); });
+      }
+      document.getElementById('pres-sankey-from').addEventListener('change', refreshPresSankey);
+      document.getElementById('pres-sankey-to').addEventListener('change', refreshPresSankey);
+      document.querySelectorAll('input[name="pres-level"]').forEach(function(el) {
+        el.addEventListener('change', refreshPresSankey);
+      });
     });
 
     // ─── Démo Airflow live ────────────────────────────────────────
     var pollHandle = null;
+    var airflowAvailable = false;
+
+    function setBtnEnabled(enabled) {
+      var btn = document.getElementById('btnTrigger');
+      if (!btn) return;
+      if (enabled) {
+        btn.disabled = false;
+        btn.textContent = '▶ Trigger DAG';
+        btn.style.opacity = '1';
+        btn.style.cursor = '';
+      } else {
+        btn.disabled = true;
+        btn.textContent = '▶ Trigger DAG (offline)';
+        btn.style.opacity = '0.5';
+        btn.style.cursor = 'not-allowed';
+      }
+    }
 
     async function checkHealth() {
+      var elem = document.getElementById('afHealth');
       try {
         var r = await fetch('/api/airflow/health');
         var j = await r.json();
-        var elem = document.getElementById('afHealth');
-        if (!elem) return;
         if (j.ok) {
-          elem.textContent = '✓ Airflow up · scheduler ' + j.scheduler;
-          elem.style.color = '#7ee787';
+          airflowAvailable = true;
+          if (elem) {
+            elem.textContent = '✓ Airflow up · scheduler ' + j.scheduler;
+            elem.style.color = '#7ee787';
+          }
+          setBtnEnabled(true);
         } else {
-          elem.textContent = '✗ Airflow KO · ' + (j.error || 'unknown');
-          elem.style.color = '#ffa198';
+          airflowAvailable = false;
+          if (elem) {
+            elem.textContent = '⊘ Démo désactivée (Airflow non démarré)';
+            elem.style.color = '#8b949e';
+          }
+          setBtnEnabled(false);
         }
       } catch (e) {
-        var elem = document.getElementById('afHealth');
-        if (elem) { elem.textContent = '✗ ' + e.message; elem.style.color = '#ffa198'; }
+        airflowAvailable = false;
+        if (elem) {
+          elem.textContent = '⊘ Démo désactivée';
+          elem.style.color = '#8b949e';
+        }
+        setBtnEnabled(false);
       }
+      return airflowAvailable;
     }
 
     function renderPanel(data) {
@@ -1092,10 +1271,12 @@ Brief-5-RFM-Segmentation-LRZ/
 
     // ─── Gestion du ticker et du polling au changement de slide ──
     Reveal.on('slidechanged', function(event) {
-      // Resize les Plotly charts qui sont visibles
-      ['treemap-slide', 'heatmap-slide', 'movements-slide'].forEach(function(id) {
+      // Resize les Plotly charts qui sont visibles.
+      // On teste _fullLayout plutôt que .data car .data n'est pas défini
+      // sur un div standard — le resize ne se déclenchait jamais sinon.
+      ['sankey-slide', 'bubble-slide', 'movements-slide'].forEach(function(id) {
         var el = document.getElementById(id);
-        if (el && el.data) Plotly.Plots.resize(el);
+        if (el && el._fullLayout) Plotly.Plots.resize(el);
       });
 
       // Afficher/masquer le ticker Airflow selon la slide
@@ -1103,9 +1284,18 @@ Brief-5-RFM-Segmentation-LRZ/
       var ticker = document.getElementById('airflow-ticker');
       if (showTicker) {
         if (ticker) ticker.classList.add('visible');
-        checkHealth();
-        pollLatestRun();
-        if (!pollHandle) pollHandle = setInterval(pollLatestRun, 3000);
+        // On ne démarre le polling QUE si Airflow répond OK,
+        // pour éviter de marteler /api/airflow/runs/latest et garder
+        // un slide neutre quand la démo n'est pas démarrée.
+        checkHealth().then(function(ok) {
+          if (ok) {
+            pollLatestRun();
+            if (!pollHandle) pollHandle = setInterval(pollLatestRun, 3000);
+          } else if (pollHandle) {
+            clearInterval(pollHandle);
+            pollHandle = null;
+          }
+        });
       } else {
         if (ticker) ticker.classList.remove('visible');
         if (pollHandle) { clearInterval(pollHandle); pollHandle = null; }
