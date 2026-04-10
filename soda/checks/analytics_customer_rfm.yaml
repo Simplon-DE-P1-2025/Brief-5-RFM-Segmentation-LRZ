@@ -16,7 +16,7 @@ checks for analytics.customer_rfm:
   - max(m_score) <= 5
   
   # Segmentation : Aucun segment ne doit rester à 'TBD'
-  - invalid_count(rfm_segment):
+  - invalid_count(rfm_segment) = 0:
       invalid values: ['TBD']
   
   # Cohérence Monetary : Le montant total ne peut pas être nul pour un client actif
