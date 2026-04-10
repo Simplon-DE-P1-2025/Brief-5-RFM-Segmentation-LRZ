@@ -933,13 +933,33 @@ Brief-5-RFM-Segmentation-LRZ/
     {# ACTE 5 — Démo dashboard (1 min 30)                                 #}
     {# ══════════════════════════════════════════════════════════════════ #}
 
-    {# ───── S14. Treemap ─ 30 s ───── #}
+    {# ───── S14. Sankey ─ 30 s ───── #}
     <section>
-      <h2>Distribution des 11 segments</h2>
-      <div id="treemap-slide" class="plotly-slide"></div>
+      <h2>Transitions inter-segments (Sankey)</h2>
+      <div style="display:flex;align-items:center;gap:.6em;justify-content:center;margin-bottom:.4em;">
+        <select id="pres-sankey-from" style="font-size:.55em;padding:.2em .4em;background:#2d333b;color:#e6edf3;border:1px solid #444c56;border-radius:4px;">
+          {% for d in snapshot_dates %}
+          <option value="{{ d }}" {% if d == default_from %}selected{% endif %}>{{ d }}</option>
+          {% endfor %}
+        </select>
+        <span style="font-size:.55em;color:#8b949e;">&rarr;</span>
+        <select id="pres-sankey-to" style="font-size:.55em;padding:.2em .4em;background:#2d333b;color:#e6edf3;border:1px solid #444c56;border-radius:4px;">
+          {% for d in snapshot_dates %}
+          <option value="{{ d }}" {% if d == default_to %}selected{% endif %}>{{ d }}</option>
+          {% endfor %}
+        </select>
+        <span style="font-size:.55em;color:#8b949e;margin-left:.4em;">|</span>
+        <label style="font-size:.5em;color:#e6edf3;cursor:pointer;margin:0;">
+          <input type="radio" name="pres-level" value="macro" checked style="margin-right:.2em;">Macro
+        </label>
+        <label style="font-size:.5em;color:#e6edf3;cursor:pointer;margin:0;">
+          <input type="radio" name="pres-level" value="detailed" style="margin-right:.2em;">Détaillé
+        </label>
+      </div>
+      <div id="sankey-slide" class="plotly-slide"></div>
       <p class="footnote">
-        Taille = nombre de clients · Couleur = monetary moyen ·
-        <strong>chart interactif</strong> (zoom, hover) directement dans la slide.
+        Flux clients entre deux snapshots mensuels · Noeud <strong>NOUVEAUX</strong> = premières apparitions ·
+        <strong>chart interactif</strong> (hover) directement dans la slide.
       </p>
     </section>
 
@@ -1055,20 +1075,35 @@ Brief-5-RFM-Segmentation-LRZ/
     });
 
     // ─── Plotly charts dans les slides ────────────────────────────
-    var treemap   = {{ treemap_fig | safe }};
+    var sankey    = {{ sankey_fig | safe }};
     var bubble    = {{ bubble_fig | safe }};
     var movements = {{ movements_pct_fig | safe }};
     var cfg = {responsive: true, displaylogo: false,
                modeBarButtonsToRemove: ['lasso2d', 'select2d']};
 
     Reveal.on('ready', function() {
-      Plotly.newPlot('treemap-slide',   treemap.data,   treemap.layout,   cfg);
+      Plotly.newPlot('sankey-slide',    sankey.data,    sankey.layout,    cfg);
       Plotly.newPlot('bubble-slide',    bubble.data,    bubble.layout,    cfg);
       Plotly.newPlot('movements-slide', movements.data, movements.layout, cfg);
 
       // Bind du bouton trigger (existe dès le ready)
       var btn = document.getElementById('btnTrigger');
       if (btn) btn.addEventListener('click', triggerDag);
+
+      // ─── Contrôles Sankey dans la slide ──────────────────────────
+      function refreshPresSankey() {
+        var f = document.getElementById('pres-sankey-from').value;
+        var t = document.getElementById('pres-sankey-to').value;
+        var lvl = document.querySelector('input[name="pres-level"]:checked').value;
+        fetch('/api/sankey?from=' + f + '&to=' + t + '&level=' + lvl)
+          .then(function(r) { return r.json(); })
+          .then(function(d) { Plotly.react('sankey-slide', d.data, d.layout, cfg); });
+      }
+      document.getElementById('pres-sankey-from').addEventListener('change', refreshPresSankey);
+      document.getElementById('pres-sankey-to').addEventListener('change', refreshPresSankey);
+      document.querySelectorAll('input[name="pres-level"]').forEach(function(el) {
+        el.addEventListener('change', refreshPresSankey);
+      });
     });
 
     // ─── Démo Airflow live ────────────────────────────────────────
@@ -1239,7 +1274,7 @@ Brief-5-RFM-Segmentation-LRZ/
       // Resize les Plotly charts qui sont visibles.
       // On teste _fullLayout plutôt que .data car .data n'est pas défini
       // sur un div standard — le resize ne se déclenchait jamais sinon.
-      ['treemap-slide', 'bubble-slide', 'movements-slide'].forEach(function(id) {
+      ['sankey-slide', 'bubble-slide', 'movements-slide'].forEach(function(id) {
         var el = document.getElementById(id);
         if (el && el._fullLayout) Plotly.Plots.resize(el);
       });

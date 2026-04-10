@@ -587,6 +587,87 @@ def get_cohort_pivot(engine: Engine) -> pd.DataFrame:
     return _safe_read_sql(sql, engine)
 
 
+# Mapping des noms bruts (customer_rfm_history.rfm_segment) vers les
+# labels préfixés utilisés par SEGMENT_COLORS dans charts.py.
+# Source de vérité : etl/05_view_rfm_v.sql lignes 61-73.
+_SEGMENT_LABEL_MAP = {
+    "Champions":          "A.CHAMPIONS",
+    "Loyal Customers":    "B.LOYAL",
+    "Potential Loyalist": "C.POTENTIAL_LOYALIST",
+    "Recent Customers":   "D.RECENT_CUSTOMERS",
+    "Promising":          "E.PROMISING",
+    "Need Attention":     "F.NEED_ATTENTION",
+    "About to Sleep":     "G.ABOUT_TO_SLEEP",
+    "At Risk":            "H.AT_RISK",
+    "Cannot Lose Them":   "I.CANNOT_LOSE",
+    "Hibernating":        "J.HIBERNATING",
+    "Lost":               "K.LOST",
+}
+
+
+@cache.memoize(timeout=60)
+def get_snapshot_dates(engine: Engine) -> list:
+    """Liste des snapshot_date distincts dans customer_rfm_history.
+
+    Retourne une liste de date objects triée chronologiquement,
+    utilisée pour peupler les sélecteurs de la page Sankey.
+    """
+    sql = """
+        SELECT DISTINCT snapshot_date
+        FROM analytics.customer_rfm_history
+        ORDER BY snapshot_date;
+    """
+    df = _safe_read_sql(sql, engine)
+    if df.empty:
+        return []
+    return df["snapshot_date"].tolist()
+
+
+def get_segment_transitions(
+    engine: Engine,
+    date_from,
+    date_to,
+    level: str = "macro",
+) -> pd.DataFrame:
+    """Transitions client-à-client entre deux snapshots mensuels.
+
+    Self-join sur customer_rfm_history : compte combien de clients
+    passent du segment X au segment Y entre date_from et date_to.
+
+    level="macro"    → colonnes macro_segment (4 segments)
+    level="detailed" → colonnes rfm_segment   (11 segments, mappés
+                       vers labels préfixés A.→K.)
+
+    Retourne un DataFrame (seg_from, seg_to, n_customers).
+    """
+    col = "macro_segment" if level == "macro" else "rfm_segment"
+    sql = f"""
+        WITH t_from AS (
+            SELECT customer_id, {col} AS seg_from
+            FROM analytics.customer_rfm_history
+            WHERE snapshot_date = %(date_from)s
+        ),
+        t_to AS (
+            SELECT customer_id, {col} AS seg_to
+            FROM analytics.customer_rfm_history
+            WHERE snapshot_date = %(date_to)s
+        )
+        SELECT
+            COALESCE(f.seg_from, 'NOUVEAUX') AS seg_from,
+            COALESCE(t.seg_to,   'DISPARUS') AS seg_to,
+            COUNT(*) AS n_customers
+        FROM t_from f
+        FULL OUTER JOIN t_to t USING (customer_id)
+        GROUP BY 1, 2
+        ORDER BY 1, 2;
+    """
+    df = _safe_read_sql(sql, engine, params={"date_from": date_from, "date_to": date_to})
+    if level == "detailed" and not df.empty:
+        df["seg_from"] = df["seg_from"].map(_SEGMENT_LABEL_MAP).fillna(df["seg_from"])
+        df["seg_to"] = df["seg_to"].map(_SEGMENT_LABEL_MAP).fillna(df["seg_to"])
+    return df
+
+
 @cache.memoize(timeout=60)
 def get_history_volumes(engine: Engine) -> dict[str, Any]:
     """Sanity / KPI bar des pages Movements & Cohorts."""

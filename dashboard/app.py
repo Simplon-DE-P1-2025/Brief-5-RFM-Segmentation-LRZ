@@ -320,6 +320,63 @@ def create_app() -> Flask:
             ),
         )
 
+    @app.route("/sankey")
+    def sankey():
+        snapshot_dates = queries.get_snapshot_dates(engine)
+        history = queries.get_history_volumes(engine)
+
+        if len(snapshot_dates) < 2:
+            return render_template(
+                "sankey.html",
+                active_page="sankey",
+                kpi_bar=queries.get_kpi_bar(engine),
+                history=history,
+                snapshot_dates=[],
+                default_from=None,
+                default_to=None,
+                sankey_fig=charts._empty_figure("Pas assez de snapshots (min 2)"),
+            )
+
+        date_from = snapshot_dates[-2]
+        date_to = snapshot_dates[-1]
+        transitions_df = queries.get_segment_transitions(
+            engine, date_from, date_to, level="macro",
+        )
+
+        return render_template(
+            "sankey.html",
+            active_page="sankey",
+            kpi_bar=queries.get_kpi_bar(engine),
+            history=history,
+            snapshot_dates=[d.isoformat() for d in snapshot_dates],
+            default_from=date_from.isoformat(),
+            default_to=date_to.isoformat(),
+            sankey_fig=charts.build_sankey_transitions(transitions_df, level="macro"),
+        )
+
+    @app.route("/api/sankey")
+    def api_sankey():
+        from datetime import date as _date
+
+        date_from_str = request.args.get("from")
+        date_to_str = request.args.get("to")
+        level = request.args.get("level", "macro")
+
+        if level not in ("macro", "detailed"):
+            return jsonify({"error": "level must be 'macro' or 'detailed'"}), 400
+
+        try:
+            date_from = _date.fromisoformat(date_from_str)
+            date_to = _date.fromisoformat(date_to_str)
+        except (ValueError, TypeError):
+            return jsonify({"error": "Invalid date format (expected YYYY-MM-DD)"}), 400
+
+        transitions_df = queries.get_segment_transitions(
+            engine, date_from, date_to, level=level,
+        )
+        fig_json = charts.build_sankey_transitions(transitions_df, level=level)
+        return app.response_class(response=fig_json, mimetype="application/json")
+
     @app.route("/about")
     def about():
         return render_template("about.html")
@@ -362,10 +419,18 @@ def create_app() -> Flask:
         """
         kpi_bar = queries.get_kpi_bar(engine)
         seg_kpi_df = queries.get_table_kpi_per_segment(engine)
-        seg_dist_df = queries.get_segment_distribution(engine)
         bubble_df = queries.get_bubble_segments(engine)
         movements_df = queries.get_macro_movements(engine)
         history = queries.get_history_volumes(engine)
+
+        snapshot_dates = queries.get_snapshot_dates(engine)
+        if len(snapshot_dates) >= 2:
+            sankey_df = queries.get_segment_transitions(
+                engine, snapshot_dates[-2], snapshot_dates[-1], level="macro",
+            )
+            sankey_fig = charts.build_sankey_transitions(sankey_df, level="macro", dark=True)
+        else:
+            sankey_fig = charts._empty_figure("Pas assez de snapshots")
 
         return render_template(
             "presentation.html",
@@ -375,7 +440,10 @@ def create_app() -> Flask:
             segment_colors=charts.SEGMENT_COLORS,
             macro_colors=charts.MACRO_COLORS,
             airflow_url=os.environ.get("AIRFLOW_PUBLIC_URL", "http://localhost:8080"),
-            treemap_fig=charts.build_treemap(seg_dist_df, dark=True),
+            sankey_fig=sankey_fig,
+            snapshot_dates=[d.isoformat() for d in snapshot_dates],
+            default_from=snapshot_dates[-2].isoformat() if len(snapshot_dates) >= 2 else None,
+            default_to=snapshot_dates[-1].isoformat() if len(snapshot_dates) >= 2 else None,
             bubble_fig=charts.build_bubble_segments(bubble_df, dark=True),
             movements_pct_fig=charts.build_macro_movements_pct(movements_df, dark=True),
         )

@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+{% set active_page = "sankey" %}
+{% block title %}RFM — Sankey Transitions{% endblock %}
+
+{% block content %}
+<main class="container-fluid py-4">
+
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+      <h1 class="h3 fw-bold mb-0">Segment Transitions (Sankey)</h1>
+      <p class="text-muted small mb-0">
+        Flux clients entre deux snapshots mensuels — alimenté par
+        <code>analytics.customer_rfm_history</code>
+        ({{ history.total_rows | default(0) }} lignes &middot;
+         {{ history.n_snapshots | default(0) }} snapshots &middot;
+         {{ history.first_snap }} &rarr; {{ history.last_snap }})
+      </p>
+    </div>
+    <span class="badge bg-secondary fs-6">Online Retail II — UK 2009-2011</span>
+  </div>
+
+  {# ─── KPI bar global réutilisé ───────────────────────────────── #}
+  {% include "_kpi_bar.html" %}
+
+  {# ─── Légende des 4 macro segments ───────────────────────────── #}
+  <section class="mb-3">
+    <div class="card shadow-sm border-0">
+      <div class="card-body py-3">
+        <strong class="me-3">Macro segments :</strong>
+        <span class="badge me-2" style="background:#2c7a4b">A.LOYAL</span>
+        <small class="text-muted me-3">Champions + Loyal + Potential Loyalist</small>
+        <span class="badge me-2" style="background:#3060a0">B.PROMISING</span>
+        <small class="text-muted me-3">New + Promising + Need Attention</small>
+        <span class="badge me-2" style="background:#6b4c9a">C.SLEEP</span>
+        <small class="text-muted me-3">About to Sleep + At Risk + Cannot Lose</small>
+        <span class="badge me-2" style="background:#c95b27">D.LOST</span>
+        <small class="text-muted">Hibernating + Lost</small>
+      </div>
+    </div>
+  </section>
+
+  {# ─── Barre de contrôles ─────────────────────────────────────── #}
+  <section class="mb-3">
+    <div class="card shadow-sm border-0">
+      <div class="card-body py-3 d-flex align-items-center gap-3 flex-wrap">
+        <label class="fw-semibold mb-0">Transition :</label>
+
+        <select id="sankey-from" class="form-select form-select-sm" style="max-width:200px">
+          {% for d in snapshot_dates %}
+          <option value="{{ d }}" {% if d == default_from %}selected{% endif %}>{{ d }}</option>
+          {% endfor %}
+        </select>
+
+        <span class="text-muted fw-bold">&rarr;</span>
+
+        <select id="sankey-to" class="form-select form-select-sm" style="max-width:200px">
+          {% for d in snapshot_dates %}
+          <option value="{{ d }}" {% if d == default_to %}selected{% endif %}>{{ d }}</option>
+          {% endfor %}
+        </select>
+
+        <div class="btn-group ms-auto" role="group" aria-label="Granularité">
+          <input type="radio" class="btn-check" name="level" id="level-macro" value="macro" checked>
+          <label class="btn btn-outline-secondary btn-sm" for="level-macro">Macro (4)</label>
+          <input type="radio" class="btn-check" name="level" id="level-detailed" value="detailed">
+          <label class="btn btn-outline-secondary btn-sm" for="level-detailed">Détaillé (11)</label>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  {# ─── Sankey chart ───────────────────────────────────────────── #}
+  <section class="row g-3 mb-4">
+    <div class="col-12">
+      <div class="card shadow-sm border-0">
+        <div class="card-header bg-white">
+          <span class="fw-semibold" id="sankey-title">Segment Transitions</span>
+          <small class="text-muted ms-2" id="sankey-subtitle">— flux clients entre deux snapshots mensuels</small>
+        </div>
+        <div class="card-body p-2">
+          <div id="sankey_chart" style="height: 600px;"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</main>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function() {
+  var fig = {{ sankey_fig | safe }};
+  var cfg = {responsive: true, displaylogo: false,
+             modeBarButtonsToRemove: ['lasso2d', 'select2d']};
+  Plotly.newPlot('sankey_chart', fig.data, fig.layout, cfg);
+
+  function refreshSankey() {
+    var dateFrom = document.getElementById('sankey-from').value;
+    var dateTo   = document.getElementById('sankey-to').value;
+    var level    = document.querySelector('input[name="level"]:checked').value;
+
+    fetch('/api/sankey?from=' + dateFrom + '&to=' + dateTo + '&level=' + level)
+      .then(function(resp) { return resp.json(); })
+      .then(function(data) {
+        Plotly.react('sankey_chart', data.data, data.layout, cfg);
+      });
+  }
+
+  document.getElementById('sankey-from').addEventListener('change', refreshSankey);
+  document.getElementById('sankey-to').addEventListener('change', refreshSankey);
+  document.querySelectorAll('input[name="level"]').forEach(function(el) {
+    el.addEventListener('change', refreshSankey);
+  });
+})();
+</script>
+{% endblock %}
