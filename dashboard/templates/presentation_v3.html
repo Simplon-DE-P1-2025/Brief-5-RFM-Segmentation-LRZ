@@ -163,21 +163,23 @@
     /* ─── Code block ASCII / SQL ──────────────────────────────────────── */
     pre.snippet {
       font-family: 'JetBrains Mono', monospace;
-      font-size: 0.78rem;
+      font-size: 0.72rem;
       line-height: 1.5;
-      background: #0a0e14;
+      background: #111820;
       border: 1px solid var(--line);
       border-radius: 0.5rem;
       padding: 0.95rem 1.15rem;
       color: #c7d2e0;
-      max-width: 60ch;
+      max-width: 100%;
       overflow-x: auto;
+      tab-size: 2;
     }
     pre.snippet .kw { color: var(--voice); }
     pre.snippet .num { color: var(--why); }
     pre.snippet .cmt { color: #5a657a; font-style: italic; }
-    pre.snippet .red { color: var(--warn); }
-    pre.snippet .grn { color: var(--green); }
+    pre.snippet .red { color: #ff8a8a; }
+    pre.snippet .grn { color: #90f0a0; }
+    pre.snippet .hl  { background: rgba(255, 200, 87, 0.12); border-radius: 2px; padding: 0 0.2em; }
 
     /* ─── Cover (chapitre 0) ──────────────────────────────────────────── */
     .cover-eyebrow {
@@ -247,6 +249,38 @@
     }
     .docker-flow .box strong { display: block; color: var(--voice); margin-bottom: 0.2rem; font-family: 'Inter', sans-serif; font-size: 0.74rem; text-transform: uppercase; letter-spacing: 0.08em; }
     .docker-flow .arrow { color: var(--ink-mute); font-size: 1.3rem; }
+
+    /* ─── Architecture détaillée (chap 2) ─────────────────────────────── */
+    .arch-flow {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      gap: 0.4rem 0.7rem;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.72rem;
+      align-items: center;
+    }
+    .arch-flow .group-label {
+      font-family: 'Inter', sans-serif;
+      font-size: 0.62rem;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--ink-mute);
+      grid-column: 1 / -1;
+      margin-top: 0.5rem;
+    }
+    .arch-flow .group-label:first-child { margin-top: 0; }
+    .arch-flow .svc {
+      padding: 0.4rem 0.6rem;
+      border-radius: 0.35rem;
+      background: var(--bg-card);
+      border: 1px solid var(--line);
+      text-align: center;
+    }
+    .arch-flow .svc.data   { border-color: var(--green); color: var(--green); }
+    .arch-flow .svc.orch   { border-color: var(--voice); color: var(--voice); }
+    .arch-flow .svc.ui     { border-color: var(--why); color: var(--why); }
+    .arch-flow .svc .note  { display: block; font-size: 0.58rem; color: var(--ink-mute); margin-top: 0.15rem; }
+    .arch-flow .pipe       { color: var(--ink-mute); text-align: center; }
 
     .cascade-flow {
       display: flex; flex-direction: column; gap: 0.45rem;
@@ -522,7 +556,7 @@
     }
     .v3-progress {
       display: grid;
-      grid-template-columns: repeat(9, 1fr);
+      grid-template-columns: repeat(10, 1fr);
       gap: 0.32rem;
     }
     .v3-progress .step {
@@ -600,7 +634,7 @@
   <header class="v3-header">
     <span class="v3-chip">
       <span class="dot"></span>
-      <span>Chap <span id="chapNum">0</span> / 9</span>
+      <span>Chap <span id="chapNum">0</span> / 10</span>
     </span>
     <span class="v3-title" id="chapTitle">Le Voyage du Datum</span>
     <span class="v3-clock" id="clock">
@@ -618,22 +652,11 @@
 
       {# ───── Chapitre 0 — Cover ───── #}
       <section class="v3-chapter active" data-chapter="0">
-        <div class="cover-eyebrow">Présentation finale · 10 à 15 minutes</div>
+        <div class="cover-eyebrow">Présentation finale</div>
         <h1 class="cover-title">Le voyage<br>du datum.</h1>
         <p class="lead" style="max-width: 38ch;">
           Pour comprendre notre pipeline RFM, nous n'allons pas vous montrer des
           slides. Nous allons vous présenter <strong>quelqu'un</strong>.
-        </p>
-        <p>
-          Quelqu'un de très réel : un client qui existe vraiment dans notre base.
-          Pendant les 13 prochaines minutes, il va vous raconter son voyage à
-          travers notre infrastructure — depuis sa naissance dans un tableau
-          Excel jusqu'à sa résurrection dans un dashboard.
-        </p>
-        <p>
-          Vous découvrirez au passage Docker, Airflow, Postgres, NTILE(5),
-          l'idempotence, le snapshot history… mais en passager, pas en cours
-          magistral.
         </p>
         <div class="cover-team">
           <span class="name">Zoubir</span>
@@ -670,15 +693,13 @@
           de 44 Mo.
         </p>
         <pre class="snippet">
-<span class="cmt"># ce que pandas fait par défaut, et qu'on a refusé :</span>
-<span class="kw">pd</span>.read_excel(<span class="grn">"online_retail_II.xlsx"</span>)
-<span class="cmt"># → 5 GB de RAM, customer_id en float64, casts implicites…</span>
-
-<span class="cmt"># notre approche : streaming openpyxl + COPY FROM</span>
+<span class="cmt"># streaming openpyxl + COPY FROM</span>
 <span class="kw">wb</span> = load_workbook(path, read_only=<span class="kw">True</span>)
 <span class="kw">for</span> row <span class="kw">in</span> ws.iter_rows(values_only=<span class="kw">True</span>):
-    writer.writerow(row)        <span class="cmt"># mémoire constante</span>
-cursor.copy_expert(<span class="grn">"COPY raw.online_retail FROM STDIN"</span>, fh)</pre>
+    writer.writerow(row)  <span class="cmt"># mémoire constante</span>
+cursor.copy_expert(
+    <span class="grn">"COPY raw.online_retail FROM STDIN"</span>, fh
+)</pre>
         <p>
           Résultat : 1,07 M de lignes ingérées en <strong>2 à 5 secondes</strong>,
           en mémoire constante, sans qu'aucune ligne ne soit altérée. Je suis
@@ -699,16 +720,23 @@ cursor.copy_expert(<span class="grn">"COPY raw.online_retail FROM STDIN"</span>,
           tient dans un seul <code>docker compose up -d</code> et démarre 8
           services qui se parlent par leurs noms DNS internes.
         </p>
-        <div class="visual">
-          <div class="docker-flow">
-            <div class="box"><strong>Source</strong>online_retail_II.xlsx</div>
-            <div class="arrow">→</div>
-            <div class="box" style="background: rgba(127, 219, 255, 0.06); border-color: var(--voice);">
-              <strong style="color: var(--voice);">docker compose</strong>
-              postgres · airflow×6<br>redis · dashboard · etl
-            </div>
-            <div class="arrow">→</div>
-            <div class="box"><strong>Restitution</strong>Dashboard Flask</div>
+        <div class="visual" style="max-width: 100%;">
+          <div class="arch-flow">
+            <div class="group-label">Données</div>
+            <div class="svc data">postgres<span class="note">rfm_db + airflow_db</span></div>
+            <div class="pipe">←→</div>
+            <div class="svc data">redis<span class="note">message broker</span></div>
+
+            <div class="group-label">Orchestration — Airflow 3</div>
+            <div class="svc orch">airflow-apiserver</div>
+            <div class="pipe">→</div>
+            <div class="svc orch">airflow-scheduler</div>
+            <div class="svc orch">airflow-worker</div>
+            <div class="pipe">↔</div>
+            <div class="svc orch">airflow-triggerer</div>
+
+            <div class="group-label">Présentation</div>
+            <div class="svc ui" style="grid-column: 1 / -1;">dashboard — Flask + Plotly<span class="note">lit analytics.customer_rfm_v</span></div>
           </div>
         </div>
         <p>
@@ -734,10 +762,10 @@ cursor.copy_expert(<span class="grn">"COPY raw.online_retail FROM STDIN"</span>,
         </p>
         <div class="visual">
           <div class="cascade-flow">
-            <div class="row dropped"><span class="lbl">stock_movements <span style="color: var(--ink-mute);">— ajustements internes</span></span><span class="num">~  4 382</span></div>
-            <div class="row dropped"><span class="lbl">cancellations <span style="color: var(--ink-mute);">— invoice LIKE 'C%'</span></span><span class="num">~ 19 494</span></div>
-            <div class="row dropped"><span class="lbl">non_product_lines <span style="color: var(--ink-mute);">— POST, DOT, BANK…</span></span><span class="num">~  4 805</span></div>
-            <div class="row kept"><span class="lbl">clean.sales <span style="color: var(--ink-mute);">— moi, et 802 636 autres ✓</span></span><span class="num">~802 637</span></div>
+            <div class="row dropped"><span class="lbl">stock_movements <span style="color: var(--ink-mute);">— ajustements internes</span></span><span class="num">~  4 382 <span style="color: var(--ink-mute); font-size: 0.72rem;">(0.5%)</span></span></div>
+            <div class="row dropped"><span class="lbl">cancellations <span style="color: var(--ink-mute);">— invoice LIKE 'C%'</span></span><span class="num">~ 19 494 <span style="color: var(--ink-mute); font-size: 0.72rem;">(2.3%)</span></span></div>
+            <div class="row dropped"><span class="lbl">non_product_lines <span style="color: var(--ink-mute);">— POST, DOT, BANK…</span></span><span class="num">~  4 805 <span style="color: var(--ink-mute); font-size: 0.72rem;">(0.6%)</span></span></div>
+            <div class="row kept"><span class="lbl">clean.sales <span style="color: var(--ink-mute);">— moi, et 802 636 autres ✓</span></span><span class="num">~802 637 <span style="font-size: 0.72rem;">(96.6%)</span></span></div>
           </div>
         </div>
         <p>
@@ -778,12 +806,12 @@ cursor.copy_expert(<span class="grn">"COPY raw.online_retail FROM STDIN"</span>,
         </div>
         <pre class="snippet" style="margin-top: 0.95rem;">
 <span class="kw">SELECT</span> customer_id,
-       (ref_date - <span class="kw">MAX</span>(invoice_date)::date)         <span class="kw">AS</span> recency,
-       <span class="kw">COUNT</span>(<span class="kw">DISTINCT</span> invoice_id)                  <span class="kw">AS</span> frequency,
-       <span class="kw">SUM</span>(line_amount)                            <span class="kw">AS</span> monetary,
-       <span class="num">6</span> - <span class="kw">NTILE</span>(<span class="num">5</span>) <span class="kw">OVER</span> (<span class="kw">ORDER BY</span> recency, customer_id) <span class="kw">AS</span> r_score,
-           <span class="kw">NTILE</span>(<span class="num">5</span>) <span class="kw">OVER</span> (<span class="kw">ORDER BY</span> frequency, customer_id) <span class="kw">AS</span> f_score,
-           <span class="kw">NTILE</span>(<span class="num">5</span>) <span class="kw">OVER</span> (<span class="kw">ORDER BY</span> monetary, customer_id) <span class="kw">AS</span> m_score
+  (ref_date - <span class="kw">MAX</span>(invoice_date)::date) <span class="kw">AS</span> recency,
+  <span class="kw">COUNT</span>(<span class="kw">DISTINCT</span> invoice_id)            <span class="kw">AS</span> frequency,
+  <span class="kw">SUM</span>(line_amount)                      <span class="kw">AS</span> monetary,
+  <span class="hl"><span class="num">6</span> - <span class="kw">NTILE</span>(<span class="num">5</span>)</span> <span class="kw">OVER</span> (<span class="kw">ORDER BY</span> recency)   <span class="kw">AS</span> r_score,
+  <span class="kw">NTILE</span>(<span class="num">5</span>) <span class="kw">OVER</span> (<span class="kw">ORDER BY</span> frequency)     <span class="kw">AS</span> f_score,
+  <span class="kw">NTILE</span>(<span class="num">5</span>) <span class="kw">OVER</span> (<span class="kw">ORDER BY</span> monetary)      <span class="kw">AS</span> m_score
 <span class="kw">FROM</span> rfm_raw;</pre>
         <p>
           Mes scores tombent : <strong style="color: var(--warn);">R = 2</strong>,
@@ -856,6 +884,9 @@ cursor.copy_expert(<span class="grn">"COPY raw.online_retail FROM STDIN"</span>,
               <code>ingest_xlsx</code> ≈ 90 s<br>
               les 3 autres ≈ 10 s
             </p>
+            <p style="font-size: 0.68rem; color: var(--ink-mute); margin: 0.8rem 0 0 0; line-height: 1.45; border-top: 1px dashed var(--line); padding-top: 0.6rem;">
+              <strong style="color: var(--ink);">Idempotence</strong> : chaque tâche <code>TRUNCATE</code> ses tables aval → rejouable sans doublons.
+            </p>
           </div>
           <div>
             <div id="runHeader" style="font-size: 0.74rem; color: var(--ink-mute); margin-bottom: 0.55rem;">
@@ -875,12 +906,6 @@ cursor.copy_expert(<span class="grn">"COPY raw.online_retail FROM STDIN"</span>,
             </div>
           </div>
         </div>
-        <p style="margin-top: 0.85rem;">
-          <strong>L'idempotence partout</strong> : chaque tâche commence par
-          un <code>TRUNCATE</code> en aval, donc on peut relancer le DAG
-          autant de fois qu'on veut sans doublons et sans état résiduel.
-          C'est ce qui rend ma résurrection 100% reproductible.
-        </p>
       </section>
 
       {# ───── Chapitre 7 — Dashboard ───── #}
@@ -906,7 +931,7 @@ cursor.copy_expert(<span class="grn">"COPY raw.online_retail FROM STDIN"</span>,
         </p>
       </section>
 
-      {# ───── Chapitre 8 — Conclusion + Q&A ───── #}
+      {# ───── Chapitre 8 — Snapshot history ───── #}
       <section class="v3-chapter" data-chapter="8">
         <h2>Et si je dormais ? <span style="color: var(--ink-mute); font-size: 0.6em;">— ce qu'on en fait</span></h2>
         <p class="voice short">
@@ -921,13 +946,27 @@ cursor.copy_expert(<span class="grn">"COPY raw.online_retail FROM STDIN"</span>,
           de voir l'évolution de la composition de la base dans le temps :
         </p>
         <div id="movementsSlot" class="plot-slot" style="height: 280px;"></div>
-        <p style="margin-top: 0.85rem;">
-          <strong>Ce qu'on retient.</strong> Le projet n'est pas un simple
-          calcul RFM. C'est un pipeline conteneurisé, orchestré, idempotent
-          et explicable de bout en bout — capable de transformer 1,07 M de
-          lignes brutes en 5 852 portraits exploitables, et capable surtout
-          de repérer des clients comme moi : ceux qui partent sans bruit, et
-          que personne n'aurait vus sans cette grille de lecture.
+        <div style="display: flex; gap: 1.2rem; flex-wrap: wrap; margin-top: 0.7rem; font-size: 0.74rem; font-family: 'JetBrains Mono', monospace;">
+          <span><span style="color: #2c7a4b;">A.LOYAL</span> = Champions + Loyal</span>
+          <span><span style="color: #3060a0;">B.PROMISING</span> = Potential + Promising + New</span>
+          <span><span style="color: #6b4c9a;">C.SLEEP</span> = Need Attention + About to Sleep + Hibernating</span>
+          <span><span style="color: var(--segment);">D.LOST</span> = At Risk + Lost</span>
+        </div>
+      </section>
+
+      {# ───── Chapitre 9 — Conclusion + Q&A ───── #}
+      <section class="v3-chapter" data-chapter="9">
+        <h2>Ce qu'on retient</h2>
+        <p class="voice short">
+          « Je n'étais pas qu'une photo. J'étais une trajectoire. »
+        </p>
+        <p class="lead">
+          Le projet n'est pas un simple calcul RFM. C'est un pipeline
+          conteneurisé, orchestré, idempotent et explicable de bout en bout
+          — capable de transformer 1,07 M de lignes brutes en 5 852 portraits
+          exploitables, et capable surtout de repérer des clients comme moi :
+          ceux qui partent sans bruit, et que personne n'aurait vus sans cette
+          grille de lecture.
         </p>
         <p class="lead" style="margin-top: 1.2rem; color: var(--voice); font-style: italic; font-family: 'Lora', serif;">
           Merci. Vos questions ?
@@ -980,7 +1019,7 @@ cursor.copy_expert(<span class="grn">"COPY raw.online_retail FROM STDIN"</span>,
   {# ═══ FOOTER ════════════════════════════════════════════════════════ #}
   <footer class="v3-footer">
     <div class="v3-progress" id="progress">
-      {# 9 steps, indices 0..8 — peuplé par JS #}
+      {# 10 steps, indices 0..9 — peuplé par JS #}
     </div>
     <div class="v3-why">
       <span class="why-tag">Pourquoi ce choix ?</span>
@@ -1045,6 +1084,11 @@ cursor.copy_expert(<span class="grn">"COPY raw.online_retail FROM STDIN"</span>,
       {
         title: "Chapitre 8 — Et si je dormais ?",
         why:   "<strong>Snapshot history mensuel</strong> via <code>compute_rfm_history</code> : on voit la <em>trajectoire</em> de la base, pas seulement une photo finale. Feature unique de ce projet.",
+        id:    { r: 2, f: 5, m: 5, seg: "At Risk", trail: "25 mois d'historique. Ma trajectoire est gravée dans <code>analytics.customer_rfm_history</code>." }
+      },
+      {
+        title: "Conclusion — Merci",
+        why:   "Pipeline conteneurisé, orchestré, idempotent et explicable de bout en bout.",
         id:    { r: 2, f: 5, m: 5, seg: "At Risk", trail: "Je n'étais pas qu'une photo : j'étais une trajectoire. <strong>RFM m'a donné un nom avant qu'on m'oublie.</strong>" }
       }
     ];
@@ -1164,12 +1208,26 @@ cursor.copy_expert(<span class="grn">"COPY raw.online_retail FROM STDIN"</span>,
       fig.layout = fig.layout || {};
       fig.layout.paper_bgcolor = 'rgba(0,0,0,0)';
       fig.layout.plot_bgcolor  = 'rgba(0,0,0,0)';
-      fig.layout.font = { color: '#e8eef7', family: 'Inter, sans-serif', size: 11 };
+      fig.layout.font = { color: '#e8eef7', family: 'Inter, sans-serif', size: 13 };
       fig.layout.margin = { l: 50, r: 20, t: 30, b: 40 };
       return fig;
     }
 
-    Plotly.newPlot('heatmapSlot',   themeFig(heatmapFig).data,   themeFig(heatmapFig).layout,   plotlyCfg);
+    const heatmapThemed = themeFig(heatmapFig);
+    // Marqueur client #17850 sur la cellule (R2, F5)
+    heatmapThemed.layout.annotations = (heatmapThemed.layout.annotations || []).concat([{
+      x: '5', y: '2',
+      text: '<b>#17850</b>',
+      showarrow: true,
+      arrowhead: 2,
+      arrowcolor: '#ffc857',
+      font: { color: '#ffc857', size: 11, family: 'JetBrains Mono' },
+      bgcolor: 'rgba(255, 200, 87, 0.15)',
+      bordercolor: '#ffc857',
+      borderwidth: 1,
+      borderpad: 3
+    }]);
+    Plotly.newPlot('heatmapSlot',   heatmapThemed.data,   heatmapThemed.layout,   plotlyCfg);
     Plotly.newPlot('movementsSlot', themeFig(movementsFig).data, themeFig(movementsFig).layout, plotlyCfg);
     window._heatmap = true;
     window._movements = true;
