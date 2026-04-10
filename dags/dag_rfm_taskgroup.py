@@ -41,6 +41,15 @@ default_args = {
     "retries": 1,
 }
 
+# ── Truncate Tables ─────────────────────────────────────────────────────────────
+truncate_req="""
+    TRUNCATE clean.sales,
+                clean.stock_movements,
+                clean.cancellations,
+                clean.non_product_lines,
+                analytics.customer_rfm
+    RESTART IDENTITY CASCADE;"""
+
 # ─────────────────────────────────────────────────────────────────────────────
 # DAG
 # ─────────────────────────────────────────────────────────────────────────────
@@ -71,6 +80,25 @@ with DAG(
     # raw.* → clean.* → analytics.customer_rfm
     # ─────────────────────────────────────────────────────────────────────────
     with TaskGroup(group_id="transform_rfm") as tg_transform:
+        
+        # ─────────────────────────────────────────────────────────────────────────
+        # 1. Truncate — purge des tables clean.* et analytics.customer_rfm
+        #    avant reconstruction complète
+        # ─────────────────────────────────────────────────────────────────────────
+        truncate = SQLExecuteQueryOperator(
+            task_id="truncate",
+            conn_id="rfm_db",
+            sql=truncate_req,
+        )
+        # ─────────────────────────────────────────────────────────────────────────
+        # 00. functions — raw.online_retail → 4 tables clean
+        # ─────────────────────────────────────────────────────────────────────────
+        function_sql = SQLExecuteQueryOperator(
+            task_id="function_sql",
+            conn_id="rfm_db",
+            sql="00_functions.sql"
+        )        
+        
         clean = SQLExecuteQueryOperator(
             task_id="clean",
             conn_id="rfm_db",
@@ -83,7 +111,7 @@ with DAG(
             sql="03_rfm.sql",
         )
 
-        clean >> compute_rfm
+        truncate >> function_sql >> clean >> compute_rfm
 
     # ─────────────────────────────────────────────────────────────────────────
     # Groupe 3 — Segmentation
