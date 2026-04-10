@@ -448,30 +448,6 @@ def create_app() -> Flask:
             movements_pct_fig=charts.build_macro_movements_pct(movements_df, dark=True),
         )
 
-    @app.route("/presentation-ve")
-    @app.route("/presentation-v2")
-    def presentation_ve():
-        """Version resserrée de la soutenance, alignée sur le brief final.
-
-        Focus : démonstration du projet, explication simple du pipeline,
-        justification des choix techniques et preuve de compréhension.
-        """
-        kpi_bar = queries.get_kpi_bar(engine)
-        bubble_df = queries.get_bubble_segments(engine)
-        rf_df = queries.get_rf_heatmap(engine)
-        movements_df = queries.get_macro_movements(engine)
-        history = queries.get_history_volumes(engine)
-
-        return render_template(
-            "presentation_ve.html",
-            kpi_bar=kpi_bar,
-            history=history,
-            airflow_url=os.environ.get("AIRFLOW_PUBLIC_URL", "http://localhost:8080"),
-            bubble_fig=charts.build_bubble_segments(bubble_df),
-            heatmap_fig=charts.build_rf_heatmap(rf_df),
-            movements_pct_fig=charts.build_macro_movements_pct(movements_df),
-        )
-
     @app.route("/presentation-v3")
     def presentation_v3():
         """Le Voyage du Datum — présentation narrative en 9 chapitres.
