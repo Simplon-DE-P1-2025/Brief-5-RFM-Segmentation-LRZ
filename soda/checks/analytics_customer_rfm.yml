@@ -1,0 +1,23 @@
+checks for analytics.customer_rfm:
+  # Le 5 943 vient du raw (csvstat). Après nettoyage, certains clients n'ont
+  # peut-être que des lignes en cancellations / non_product / stock_movements
+  # et disparaissent. À recalibrer après la 1re exécution complète du DAG.
+  - row_count between 5500 and 5943
+
+  # Unicité : Un seul score par client
+  - duplicate_count(customer_id) = 0
+  
+  # Validité des scores : Doivent être entre 1 et 5
+  - min(r_score) >= 1
+  - max(r_score) <= 5
+  - min(f_score) >= 1
+  - max(f_score) <= 5
+  - min(m_score) >= 1
+  - max(m_score) <= 5
+  
+  # Segmentation : Aucun segment ne doit rester à 'TBD'
+  - invalid_count(rfm_segment):
+      invalid values: ['TBD']
+  
+  # Cohérence Monetary : Le montant total ne peut pas être nul pour un client actif
+  - min(monetary) > 0

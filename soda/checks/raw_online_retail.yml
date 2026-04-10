@@ -1,0 +1,13 @@
+checks for raw.online_retail:
+  - row_count between 1060000 and 1075000      # 1 067 371 attendu
+  # Vérifier que les colonnes critiques sont présentes
+  - schema:
+      fail:
+        when required column missing: [invoice, stock_code, customer_id]
+  - missing_count(invoice) = 0
+  - missing_count(stock_code) = 0
+  - missing_count(quantity) = 0
+  - missing_count(price) = 0
+  - missing_percent(customer_id) < 25          # ≈ 22,77 % (cf. audit)
+  - missing_percent(description) < 1           # ≈ 0,41 %
+  - duplicate_count(*) < 50000                 # ≈ 32 907 (cf. audit)
