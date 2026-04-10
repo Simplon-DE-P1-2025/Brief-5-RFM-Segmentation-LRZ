@@ -80,6 +80,7 @@ x-airflow-common:
     - ${AIRFLOW_PROJ_DIR:-.}/config:/opt/airflow/config
     - ${AIRFLOW_PROJ_DIR:-.}/plugins:/opt/airflow/plugins
     - ${AIRFLOW_PROJ_DIR:-.}/etl:/opt/airflow/etl # ajout pour que le script soit visible depuis le container airflow
+    - ${AIRFLOW_PROJ_DIR:-.}/soda:/opt/airflow/soda
     - ${AIRFLOW_PROJ_DIR:-.}/data:/opt/airflow/data # source xlsx pour ingest_xlsx
   user: "${AIRFLOW_UID:-50000}:0"
   depends_on:

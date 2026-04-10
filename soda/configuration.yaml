@@ -1,0 +1,6 @@
+data_source rfm_db:
+  type: postgres
+  host: postgres  # Nom du service dans le docker-compose
+  username: rfm_user
+  password: rfm_pass
+  database: rfm_db
