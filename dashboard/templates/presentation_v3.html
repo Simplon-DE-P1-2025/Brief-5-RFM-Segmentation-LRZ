@@ -1,0 +1,1465 @@
+{% extends "base.html" %}
+{% block title %}RFM — Le Voyage du Datum{% endblock %}
+
+{#
+  ═══════════════════════════════════════════════════════════════════════
+  presentation_v3.html — « Le Voyage du Datum »
+  ═══════════════════════════════════════════════════════════════════════
+
+  Concept : on suit en first-person le client #17850 — un vrai revendeur
+  britannique de déco vintage qui passait 155 commandes par an chez le
+  retailer (£56 600 de CA), puis a soudainement disparu en décembre 2010.
+  RFM le qualifie aujourd'hui d'« At Risk » (R=2, F=5, M=5, code 255).
+
+  Toutes les valeurs du héros sont vérifiables en base :
+    SELECT * FROM analytics.customer_rfm WHERE customer_id = 17850;
+    SELECT MIN(invoice_date), MAX(invoice_date), COUNT(DISTINCT invoice_id),
+           SUM(line_amount), country
+    FROM clean.sales WHERE customer_id = 17850;
+
+  Layout : pas de slides reveal.js. Une « interface » en 3 zones fixes :
+    - header sticky        : chap N/9 + titre + horloge 0:00 → 15:00
+    - main gauche (65%)    : narrative first-person par chapitre
+    - main droite (35%)    : carte d'identité du datum, persistante,
+                             qui s'enrichit chapitre après chapitre
+    - footer               : progress bar + encart « pourquoi ce choix »
+
+  Navigation : flèches ← →, espace, click sur la progress bar, hash URL.
+
+  Équipe : Zoubir, Lounès, Ahmed, Romain.
+#}
+
+{% block extra_css %}
+  <style>
+    /* ─── Reset minimal et masquage de la nav Bootstrap héritée de base.html */
+    body > nav.navbar { display: none !important; }
+    body, body.bg-light { background: #0e1218 !important; color: #e8eef7; margin: 0; }
+    main.container.my-4 { max-width: none; margin: 0 !important; padding: 0 !important; }
+
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Lora:ital,wght@0,400;1,400;1,500&family=JetBrains+Mono:wght@400;600&display=swap');
+
+    :root {
+      --bg:        #0e1218;
+      --bg-soft:   #161c26;
+      --bg-card:   #1c2330;
+      --line:      #2a3343;
+      --ink:       #e8eef7;
+      --ink-mute:  #8a96ad;
+      --voice:     #7fdbff;     /* cyan : la voix du datum  */
+      --why:       #ffc857;     /* ambre : justifications   */
+      --warn:      #ff6b6b;     /* rouge : alarme At Risk   */
+      --green:     #7ee787;
+      --violet:    #d2a8ff;
+
+      --segment:   #c95b27;     /* couleur du segment At Risk */
+    }
+
+    .v3-app {
+      position: fixed; inset: 0;
+      display: grid;
+      grid-template-rows: 64px 1fr 92px;
+      font-family: 'Inter', system-ui, sans-serif;
+      color: var(--ink);
+      background: var(--bg);
+    }
+
+    /* ─── HEADER ─────────────────────────────────────────────────────── */
+    .v3-header {
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      align-items: center;
+      gap: 1.4rem;
+      padding: 0 1.6rem;
+      border-bottom: 1px solid var(--line);
+      background: linear-gradient(180deg, #11161f 0%, #0e1218 100%);
+    }
+    .v3-chip {
+      display: inline-flex; align-items: center; gap: 0.45rem;
+      padding: 0.32rem 0.7rem;
+      background: rgba(127, 219, 255, 0.08);
+      border: 1px solid rgba(127, 219, 255, 0.22);
+      border-radius: 999px;
+      font-size: 0.74rem;
+      color: var(--voice);
+      font-weight: 600;
+      letter-spacing: 0.04em;
+    }
+    .v3-chip .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--voice); animation: pulse 2.2s ease-in-out infinite; }
+    .v3-title {
+      font-family: 'Lora', serif;
+      font-style: italic;
+      font-size: 1.05rem;
+      color: var(--ink);
+      text-align: center;
+      letter-spacing: 0.01em;
+      transition: opacity 0.25s;
+    }
+    .v3-clock {
+      display: flex; align-items: center; gap: 0.5rem;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.92rem;
+      color: var(--ink-mute);
+    }
+    .v3-clock .lbl { font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.12em; }
+    .v3-clock .val { color: var(--voice); font-weight: 600; }
+    .v3-clock.warn .val { color: var(--why); }
+    .v3-clock.over .val { color: var(--warn); animation: pulse 1s infinite; }
+
+    /* ─── MAIN ───────────────────────────────────────────────────────── */
+    .v3-main {
+      display: grid;
+      grid-template-columns: minmax(0, 1.85fr) minmax(0, 1fr);
+      gap: 0;
+      overflow: hidden;
+    }
+
+    /* ─── Narrative (gauche) ──────────────────────────────────────────── */
+    .v3-narrative {
+      position: relative;
+      padding: 2.2rem 2.6rem 1.4rem 2.6rem;
+      overflow-y: auto;
+      border-right: 1px solid var(--line);
+    }
+    .v3-chapter {
+      display: none;
+      animation: fadeUp 0.5s ease both;
+    }
+    .v3-chapter.active { display: block; }
+    .v3-chapter h1 {
+      font-size: 2.4rem; font-weight: 700;
+      margin: 0 0 0.4rem 0; line-height: 1.05;
+      letter-spacing: -0.02em;
+    }
+    .v3-chapter h2 {
+      font-size: 1.65rem; font-weight: 700;
+      margin: 0 0 1.1rem 0; line-height: 1.1;
+      letter-spacing: -0.015em;
+    }
+    .v3-chapter .voice {
+      font-family: 'Lora', serif;
+      font-style: italic;
+      font-size: 1.4rem;
+      line-height: 1.5;
+      color: var(--voice);
+      max-width: 36ch;
+      margin: 0 0 1.2rem 0;
+      position: relative;
+      padding-left: 1.1rem;
+      border-left: 3px solid var(--voice);
+    }
+    .v3-chapter .voice.short { font-size: 1.55rem; max-width: 24ch; }
+    .v3-chapter p { font-size: 0.96rem; line-height: 1.55; color: var(--ink-mute); max-width: 60ch; margin: 0 0 0.8rem 0; }
+    .v3-chapter p.lead { color: var(--ink); font-size: 1.05rem; }
+    .v3-chapter code {
+      font-family: 'JetBrains Mono', monospace;
+      background: rgba(127, 219, 255, 0.08);
+      color: var(--voice);
+      padding: 0.05em 0.36em;
+      border-radius: 0.25em;
+      font-size: 0.92em;
+    }
+    .v3-chapter strong { color: var(--ink); }
+
+    /* ─── Code block ASCII / SQL ──────────────────────────────────────── */
+    pre.snippet {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.78rem;
+      line-height: 1.5;
+      background: #0a0e14;
+      border: 1px solid var(--line);
+      border-radius: 0.5rem;
+      padding: 0.95rem 1.15rem;
+      color: #c7d2e0;
+      max-width: 60ch;
+      overflow-x: auto;
+    }
+    pre.snippet .kw { color: var(--voice); }
+    pre.snippet .num { color: var(--why); }
+    pre.snippet .cmt { color: #5a657a; font-style: italic; }
+    pre.snippet .red { color: var(--warn); }
+    pre.snippet .grn { color: var(--green); }
+
+    /* ─── Cover (chapitre 0) ──────────────────────────────────────────── */
+    .cover-eyebrow {
+      display: inline-block;
+      font-size: 0.7rem;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--why);
+      margin-bottom: 1.4rem;
+    }
+    .cover-title {
+      font-family: 'Lora', serif;
+      font-style: italic;
+      font-size: 3.2rem;
+      line-height: 1.05;
+      max-width: 18ch;
+      color: var(--voice);
+      margin: 0 0 1.6rem 0;
+    }
+    .cover-team {
+      display: flex; flex-wrap: wrap; gap: 0.5rem;
+      margin-top: 1.6rem;
+    }
+    .cover-team .name {
+      padding: 0.3rem 0.8rem;
+      border: 1px solid var(--line);
+      background: var(--bg-soft);
+      border-radius: 999px;
+      font-size: 0.85rem;
+      color: var(--ink);
+    }
+    .cover-stack {
+      display: flex; flex-wrap: wrap; gap: 0.4rem;
+      margin: 0.8rem 0 0 0;
+      font-size: 0.78rem;
+    }
+    .cover-stack span {
+      background: rgba(127, 219, 255, 0.06);
+      border: 1px solid rgba(127, 219, 255, 0.18);
+      color: var(--voice);
+      padding: 0.18rem 0.55rem;
+      border-radius: 4px;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    /* ─── Visuels par chapitre (illustrations CSS) ────────────────────── */
+    .visual {
+      margin: 0.8rem 0 1.1rem 0;
+      max-width: 60ch;
+    }
+
+    .docker-flow {
+      display: grid;
+      grid-template-columns: auto 1fr auto 1fr auto;
+      align-items: center;
+      gap: 0.6rem;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.78rem;
+    }
+    .docker-flow .box {
+      padding: 0.7rem 0.8rem;
+      border-radius: 0.45rem;
+      background: var(--bg-card);
+      border: 1px solid var(--line);
+      text-align: center;
+      min-width: 0;
+    }
+    .docker-flow .box strong { display: block; color: var(--voice); margin-bottom: 0.2rem; font-family: 'Inter', sans-serif; font-size: 0.74rem; text-transform: uppercase; letter-spacing: 0.08em; }
+    .docker-flow .arrow { color: var(--ink-mute); font-size: 1.3rem; }
+
+    .cascade-flow {
+      display: flex; flex-direction: column; gap: 0.45rem;
+      font-family: 'JetBrains Mono', monospace; font-size: 0.78rem;
+    }
+    .cascade-flow .row {
+      display: grid; grid-template-columns: 1fr auto;
+      gap: 1rem;
+      padding: 0.55rem 0.85rem;
+      background: var(--bg-card);
+      border: 1px solid var(--line);
+      border-left: 3px solid var(--ink-mute);
+      border-radius: 0.4rem;
+    }
+    .cascade-flow .row.kept   { border-left-color: var(--green); }
+    .cascade-flow .row.dropped { border-left-color: var(--warn); opacity: 0.78; }
+    .cascade-flow .row .lbl { color: var(--ink); }
+    .cascade-flow .row .num { color: var(--ink-mute); font-weight: 600; }
+    .cascade-flow .row.kept .num { color: var(--green); }
+
+    .rfm-cadrans {
+      display: grid; grid-template-columns: repeat(3, 1fr);
+      gap: 0.7rem;
+      margin-top: 0.5rem;
+    }
+    .cadran {
+      background: var(--bg-card);
+      border: 1px solid var(--line);
+      border-radius: 0.55rem;
+      padding: 0.95rem 0.85rem;
+      text-align: center;
+    }
+    .cadran .dim { font-size: 0.66rem; text-transform: uppercase; letter-spacing: 0.12em; color: var(--ink-mute); }
+    .cadran .val { font-size: 1.85rem; font-weight: 700; margin: 0.25rem 0 0.05rem 0; line-height: 1; }
+    .cadran .raw { font-size: 0.72rem; color: var(--ink-mute); font-family: 'JetBrains Mono', monospace; }
+    .cadran.r .val { color: var(--warn); }
+    .cadran.f .val { color: var(--green); }
+    .cadran.m .val { color: var(--green); }
+
+    .segment-stamp {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.6rem;
+      padding: 0.7rem 1.2rem;
+      border-radius: 0.5rem;
+      background: rgba(201, 91, 39, 0.12);
+      border: 1px solid var(--segment);
+      color: var(--segment);
+      font-weight: 700;
+      font-size: 1.05rem;
+      letter-spacing: 0.02em;
+      margin: 0.6rem 0 0.4rem 0;
+    }
+    .segment-stamp .ico { font-size: 1.3rem; }
+
+    /* ─── Démo Airflow chap 6 ─────────────────────────────────────────── */
+    .demo-grid {
+      display: grid;
+      grid-template-columns: 240px minmax(0, 1fr);
+      gap: 1.1rem;
+      margin-top: 0.5rem;
+      max-width: none;
+    }
+    .demo-pad {
+      background: var(--bg-card);
+      border: 1px solid var(--line);
+      border-radius: 0.55rem;
+      padding: 1rem;
+      width: 240px;
+      box-sizing: border-box;
+    }
+    .btn-trigger {
+      width: 100%;
+      background: var(--voice);
+      color: #0a0e14;
+      border: none;
+      border-radius: 0.45rem;
+      padding: 0.85rem 1.1rem;
+      font-size: 0.95rem;
+      font-weight: 700;
+      cursor: pointer;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      transition: background 0.15s;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .btn-trigger:hover { background: #a8e7ff; }
+    .btn-trigger:disabled { background: #3a4453; color: #6b768a; cursor: not-allowed; }
+    .demo-status { font-size: 0.78rem; color: var(--ink-mute); margin-top: 0.6rem; }
+    .demo-status.up { color: var(--green); }
+    .demo-status.down { color: var(--warn); }
+
+    .task-table { display: flex; flex-direction: column; gap: 0.35rem; }
+    .task-row {
+      display: grid;
+      grid-template-columns: 1fr auto auto;
+      gap: 0.8rem;
+      align-items: center;
+      padding: 0.55rem 0.8rem;
+      background: #0a0e14;
+      border: 1px solid var(--line);
+      border-radius: 0.35rem;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.78rem;
+      color: var(--ink);
+    }
+    .task-row .dur { color: var(--ink-mute); font-size: 0.72rem; }
+    .task-row .state {
+      padding: 0.15rem 0.55rem;
+      border-radius: 0.25rem;
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .state.success         { background: rgba(126, 231, 135, 0.16); color: var(--green); }
+    .state.running         { background: rgba(127, 219, 255, 0.18); color: var(--voice); animation: pulse 1.4s infinite; }
+    .state.queued, .state.scheduled { background: rgba(210, 168, 255, 0.18); color: var(--violet); }
+    .state.failed, .state.upstream_failed { background: rgba(255, 107, 107, 0.18); color: var(--warn); }
+    .state.skipped         { background: rgba(138, 150, 173, 0.16); color: var(--ink-mute); }
+    .state.idle, .state    { background: rgba(138, 150, 173, 0.10); color: var(--ink-mute); }
+
+    /* ─── Livestream narratif (chap 6) ────────────────────────────────── */
+    .live-narrative {
+      margin-top: 0.85rem;
+      padding: 0.95rem 1.05rem;
+      background: rgba(127, 219, 255, 0.04);
+      border: 1px solid rgba(127, 219, 255, 0.18);
+      border-left: 3px solid var(--voice);
+      border-radius: 0.4rem;
+      min-height: 4.6rem;
+      display: grid;
+      grid-template-rows: auto auto;
+      gap: 0.55rem;
+    }
+    .live-narrative .ln-eyebrow {
+      font-size: 0.62rem; letter-spacing: 0.16em; text-transform: uppercase;
+      color: var(--ink-mute); display: flex; align-items: center; gap: 0.45rem;
+    }
+    .live-narrative .ln-eyebrow .led {
+      width: 7px; height: 7px; border-radius: 50%; background: var(--ink-mute);
+      box-shadow: 0 0 0 2px rgba(138, 150, 173, 0.18);
+    }
+    .live-narrative.live .ln-eyebrow .led { background: var(--voice); animation: pulse 1.4s infinite; box-shadow: 0 0 0 2px rgba(127, 219, 255, 0.3); }
+    .live-narrative.done .ln-eyebrow .led { background: var(--green); box-shadow: 0 0 0 2px rgba(126, 231, 135, 0.3); }
+    .live-narrative .ln-text {
+      font-family: 'Lora', serif;
+      font-style: italic;
+      font-size: 0.96rem;
+      line-height: 1.4;
+      color: var(--voice);
+      transition: opacity 0.4s ease;
+      min-height: 1.4em;
+    }
+    .live-narrative .ln-text.fade { opacity: 0; }
+    .live-narrative.done .ln-text { color: var(--green); }
+    .live-narrative .ln-progress {
+      display: grid; grid-template-columns: 1fr auto; gap: 0.55rem; align-items: center;
+      font-family: 'JetBrains Mono', monospace; font-size: 0.68rem; color: var(--ink-mute);
+    }
+    .live-narrative .ln-bar {
+      height: 4px; background: rgba(127, 219, 255, 0.12); border-radius: 99px; overflow: hidden;
+    }
+    .live-narrative .ln-bar > div {
+      height: 100%; background: var(--voice); width: 0%; transition: width 0.4s linear;
+      box-shadow: 0 0 8px rgba(127, 219, 255, 0.5);
+    }
+    .live-narrative.done .ln-bar > div { background: var(--green); width: 100%; box-shadow: 0 0 8px rgba(126, 231, 135, 0.5); }
+
+    /* ─── Plotly slots ───────────────────────────────────────────────── */
+    .plot-slot { width: 100%; height: 320px; background: var(--bg-soft); border: 1px solid var(--line); border-radius: 0.5rem; }
+
+    /* ─── CARTE D'IDENTITÉ (droite) ───────────────────────────────────── */
+    .v3-id {
+      padding: 2.2rem 1.8rem 1.4rem 1.8rem;
+      overflow-y: auto;
+      background:
+        radial-gradient(circle at top right, rgba(255, 200, 87, 0.06), transparent 50%),
+        linear-gradient(180deg, #131925 0%, #0e1218 100%);
+    }
+    .id-card {
+      background: var(--bg-card);
+      border: 1px solid var(--line);
+      border-radius: 0.7rem;
+      padding: 1.4rem 1.3rem 1.2rem 1.3rem;
+      box-shadow: 0 18px 48px rgba(0, 0, 0, 0.45);
+    }
+    .id-eyebrow {
+      font-size: 0.62rem; letter-spacing: 0.18em; text-transform: uppercase;
+      color: var(--ink-mute); margin-bottom: 0.4rem;
+    }
+    .id-name {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 1.7rem;
+      font-weight: 700;
+      color: var(--why);
+      letter-spacing: 0.04em;
+      margin: 0 0 0.6rem 0;
+    }
+    .id-row {
+      display: grid; grid-template-columns: auto 1fr;
+      gap: 0.6rem;
+      font-size: 0.78rem;
+      padding: 0.32rem 0;
+      border-bottom: 1px dashed rgba(138, 150, 173, 0.18);
+    }
+    .id-row:last-of-type { border-bottom: none; }
+    .id-row .k { color: var(--ink-mute); }
+    .id-row .v { color: var(--ink); text-align: right; font-family: 'JetBrains Mono', monospace; }
+
+    .id-rfm {
+      display: grid; grid-template-columns: repeat(3, 1fr);
+      gap: 0.4rem;
+      margin: 0.9rem 0 0.3rem 0;
+    }
+    .id-rfm .cell {
+      background: rgba(255, 255, 255, 0.025);
+      border: 1px solid var(--line);
+      border-radius: 0.35rem;
+      padding: 0.5rem 0;
+      text-align: center;
+      transition: all 0.4s ease;
+    }
+    .id-rfm .cell.locked { opacity: 0.32; }
+    .id-rfm .cell .k { font-size: 0.62rem; color: var(--ink-mute); text-transform: uppercase; letter-spacing: 0.1em; }
+    .id-rfm .cell .v { font-size: 1.3rem; font-weight: 700; line-height: 1; margin-top: 0.18rem; font-family: 'JetBrains Mono', monospace; color: var(--ink); }
+    .id-rfm .cell.r .v { color: var(--warn); }
+    .id-rfm .cell.f .v { color: var(--green); }
+    .id-rfm .cell.m .v { color: var(--green); }
+    .id-rfm .cell.locked .v { color: var(--ink-mute); }
+
+    .id-segment {
+      margin-top: 0.85rem;
+      padding: 0.6rem 0.7rem;
+      border-radius: 0.4rem;
+      background: rgba(201, 91, 39, 0.10);
+      border: 1px solid rgba(201, 91, 39, 0.45);
+      color: var(--segment);
+      font-weight: 700;
+      text-align: center;
+      font-size: 0.86rem;
+      letter-spacing: 0.04em;
+      transition: all 0.4s ease;
+    }
+    .id-segment.locked { opacity: 0.18; background: transparent; border-color: var(--line); color: var(--ink-mute); font-weight: 500; }
+
+    .id-trail {
+      margin-top: 1.2rem;
+      padding: 0.85rem 0.95rem;
+      background: var(--bg-soft);
+      border-left: 2px solid var(--voice);
+      border-radius: 0.3rem;
+      font-size: 0.74rem;
+      line-height: 1.5;
+      color: var(--ink-mute);
+      font-family: 'Lora', serif;
+      font-style: italic;
+      transition: opacity 0.3s;
+      min-height: 3.2rem;
+    }
+    .id-trail strong { color: var(--ink); font-style: normal; }
+
+    /* ─── FOOTER ─────────────────────────────────────────────────────── */
+    .v3-footer {
+      display: grid;
+      grid-template-rows: auto 1fr;
+      padding: 0.85rem 1.6rem 0.9rem 1.6rem;
+      border-top: 1px solid var(--line);
+      background: linear-gradient(0deg, #11161f 0%, #0e1218 100%);
+      gap: 0.55rem;
+    }
+    .v3-progress {
+      display: grid;
+      grid-template-columns: repeat(9, 1fr);
+      gap: 0.32rem;
+    }
+    .v3-progress .step {
+      height: 5px;
+      background: var(--line);
+      border-radius: 99px;
+      cursor: pointer;
+      transition: background 0.25s;
+    }
+    .v3-progress .step.done   { background: rgba(127, 219, 255, 0.4); }
+    .v3-progress .step.active { background: var(--voice); box-shadow: 0 0 12px rgba(127, 219, 255, 0.5); }
+    .v3-progress .step:hover  { background: rgba(127, 219, 255, 0.6); }
+
+    .v3-why {
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      align-items: center;
+      gap: 0.95rem;
+      font-size: 0.78rem;
+      color: var(--ink-mute);
+    }
+    .v3-why .why-tag {
+      background: rgba(255, 200, 87, 0.10);
+      border: 1px solid rgba(255, 200, 87, 0.32);
+      color: var(--why);
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      font-size: 0.66rem;
+      padding: 0.22rem 0.6rem;
+      border-radius: 4px;
+      white-space: nowrap;
+    }
+    .v3-why .why-text { line-height: 1.45; min-height: 1.4em; }
+    .v3-why .why-text strong { color: var(--ink); }
+    .v3-why .nav-hint {
+      color: var(--ink-mute);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.7rem;
+      white-space: nowrap;
+    }
+    .v3-why .nav-hint kbd {
+      background: var(--bg-card);
+      border: 1px solid var(--line);
+      border-radius: 3px;
+      padding: 0.05rem 0.32rem;
+      color: var(--voice);
+      font-size: 0.7rem;
+    }
+
+    /* ─── Animations ─────────────────────────────────────────────────── */
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50%      { opacity: 0.45; }
+    }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(8px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ─── Mobile / petits écrans : on dégrade en colonne ──────────────── */
+    @media (max-width: 980px) {
+      .v3-app { grid-template-rows: auto 1fr auto; }
+      .v3-main { grid-template-columns: 1fr; }
+      .v3-id { border-top: 1px solid var(--line); }
+      .v3-narrative { border-right: none; }
+    }
+  </style>
+{% endblock %}
+
+{% block content %}
+<div class="v3-app">
+
+  {# ═══ HEADER ════════════════════════════════════════════════════════ #}
+  <header class="v3-header">
+    <span class="v3-chip">
+      <span class="dot"></span>
+      <span>Chap <span id="chapNum">0</span> / 9</span>
+    </span>
+    <span class="v3-title" id="chapTitle">Le Voyage du Datum</span>
+    <span class="v3-clock" id="clock">
+      <span class="lbl">Soutenance</span>
+      <span class="val" id="clockVal">00:00</span>
+      <span class="lbl">/ 15:00</span>
+    </span>
+  </header>
+
+  {# ═══ MAIN ══════════════════════════════════════════════════════════ #}
+  <div class="v3-main">
+
+    {# ─── NARRATIVE (gauche) ─────────────────────────────────────────── #}
+    <article class="v3-narrative">
+
+      {# ───── Chapitre 0 — Cover ───── #}
+      <section class="v3-chapter active" data-chapter="0">
+        <div class="cover-eyebrow">Présentation finale · 10 à 15 minutes</div>
+        <h1 class="cover-title">Le voyage<br>du datum.</h1>
+        <p class="lead" style="max-width: 38ch;">
+          Pour comprendre notre pipeline RFM, nous n'allons pas vous montrer des
+          slides. Nous allons vous présenter <strong>quelqu'un</strong>.
+        </p>
+        <p>
+          Quelqu'un de très réel : un client qui existe vraiment dans notre base.
+          Pendant les 13 prochaines minutes, il va vous raconter son voyage à
+          travers notre infrastructure — depuis sa naissance dans un tableau
+          Excel jusqu'à sa résurrection dans un dashboard.
+        </p>
+        <p>
+          Vous découvrirez au passage Docker, Airflow, Postgres, NTILE(5),
+          l'idempotence, le snapshot history… mais en passager, pas en cours
+          magistral.
+        </p>
+        <div class="cover-team">
+          <span class="name">Zoubir</span>
+          <span class="name">Lounès</span>
+          <span class="name">Ahmed</span>
+          <span class="name">Romain</span>
+        </div>
+        <div class="cover-stack">
+          <span>Docker Compose</span>
+          <span>Airflow 3.1</span>
+          <span>Postgres 16</span>
+          <span>Flask + Plotly</span>
+          <span>uv</span>
+        </div>
+      </section>
+
+      {# ───── Chapitre 1 — Naissance ───── #}
+      <section class="v3-chapter" data-chapter="1">
+        <h2>Ma naissance dans un fichier Excel</h2>
+        <p class="voice short">
+          « Bonjour. Je suis le client n° 17850. »
+        </p>
+        <p class="lead">
+          Plus précisément, je suis <strong>un revendeur professionnel
+          britannique</strong> qui achète en volume chez ce retailer pour
+          écouler ensuite ses cadres en bois antique et ses cabinets vintage
+          dans sa propre boutique. Du point de vue du retailer, je suis donc
+          son <em>client</em> — un B2B parmi 5 851 autres.
+        </p>
+        <p>
+          Le 5 décembre 2009, j'ai passé ma toute première commande. Ce
+          jour-là, je n'étais qu'une ligne perdue parmi <strong>1 067 371
+          autres</strong> dans un fichier <code>online_retail_II.xlsx</code>
+          de 44 Mo.
+        </p>
+        <pre class="snippet">
+<span class="cmt"># ce que pandas fait par défaut, et qu'on a refusé :</span>
+<span class="kw">pd</span>.read_excel(<span class="grn">"online_retail_II.xlsx"</span>)
+<span class="cmt"># → 5 GB de RAM, customer_id en float64, casts implicites…</span>
+
+<span class="cmt"># notre approche : streaming openpyxl + COPY FROM</span>
+<span class="kw">wb</span> = load_workbook(path, read_only=<span class="kw">True</span>)
+<span class="kw">for</span> row <span class="kw">in</span> ws.iter_rows(values_only=<span class="kw">True</span>):
+    writer.writerow(row)        <span class="cmt"># mémoire constante</span>
+cursor.copy_expert(<span class="grn">"COPY raw.online_retail FROM STDIN"</span>, fh)</pre>
+        <p>
+          Résultat : 1,07 M de lignes ingérées en <strong>2 à 5 secondes</strong>,
+          en mémoire constante, sans qu'aucune ligne ne soit altérée. Je suis
+          maintenant dans <code>raw.online_retail</code>, intact, prêt pour la
+          suite.
+        </p>
+      </section>
+
+      {# ───── Chapitre 2 — Conteneur ───── #}
+      <section class="v3-chapter" data-chapter="2">
+        <h2>On m'embarque dans un conteneur</h2>
+        <p class="voice short">
+          « Je ne vis pas dans une machine. Je vis dans une stack. »
+        </p>
+        <p class="lead">
+          Pour me lire, me transformer et me mesurer, l'équipe n'a installé
+          <em>strictement rien</em> sur leur machine. Tout ce qui me concerne
+          tient dans un seul <code>docker compose up -d</code> et démarre 8
+          services qui se parlent par leurs noms DNS internes.
+        </p>
+        <div class="visual">
+          <div class="docker-flow">
+            <div class="box"><strong>Source</strong>online_retail_II.xlsx</div>
+            <div class="arrow">→</div>
+            <div class="box" style="background: rgba(127, 219, 255, 0.06); border-color: var(--voice);">
+              <strong style="color: var(--voice);">docker compose</strong>
+              postgres · airflow×6<br>redis · dashboard · etl
+            </div>
+            <div class="arrow">→</div>
+            <div class="box"><strong>Restitution</strong>Dashboard Flask</div>
+          </div>
+        </div>
+        <p>
+          Postgres héberge <strong>deux bases</strong> : <code>airflow</code>
+          (les méta de l'orchestrateur) et <code>rfm_db</code> (où je suis,
+          moi, client 17850). Les volumes <code>./dags</code>, <code>./etl</code>
+          et <code>./data</code> sont montés en live : si l'équipe modifie un
+          SQL, l'effet est immédiat sans rebuild.
+        </p>
+      </section>
+
+      {# ───── Chapitre 3 — Filtre ───── #}
+      <section class="v3-chapter" data-chapter="3">
+        <h2>Mon premier filtre : suis-je une vraie vente ?</h2>
+        <p class="voice short">
+          « Pas tout le monde a le droit d'entrer. Heureusement, je passe. »
+        </p>
+        <p>
+          Avant qu'on me mesure, le pipeline doit s'assurer que je suis bien
+          une transaction commerciale légitime. Le script <code>02_clean.sql</code>
+          déroule une <strong>cascade exclusive</strong> : chaque ligne brute
+          tombe dans exactement un bucket.
+        </p>
+        <div class="visual">
+          <div class="cascade-flow">
+            <div class="row dropped"><span class="lbl">stock_movements <span style="color: var(--ink-mute);">— ajustements internes</span></span><span class="num">~  4 382</span></div>
+            <div class="row dropped"><span class="lbl">cancellations <span style="color: var(--ink-mute);">— invoice LIKE 'C%'</span></span><span class="num">~ 19 494</span></div>
+            <div class="row dropped"><span class="lbl">non_product_lines <span style="color: var(--ink-mute);">— POST, DOT, BANK…</span></span><span class="num">~  4 805</span></div>
+            <div class="row kept"><span class="lbl">clean.sales <span style="color: var(--ink-mute);">— moi, et 802 636 autres ✓</span></span><span class="num">~802 637</span></div>
+          </div>
+        </div>
+        <p>
+          Je suis dans <code>clean.sales</code>. Sur mes 155 commandes
+          d'origine, aucune n'a été perdue : je suis un client commercial
+          actif, pas un fantôme comptable. Maintenant, on va me mesurer.
+        </p>
+      </section>
+
+      {# ───── Chapitre 4 — Mesure RFM ───── #}
+      <section class="v3-chapter" data-chapter="4">
+        <h2>On me mesure : Récence, Fréquence, Montant</h2>
+        <p class="voice short">
+          « Trois cadrans, trois questions, trois chiffres. »
+        </p>
+        <p>
+          Pour me caractériser, le script <code>03_rfm.sql</code> me pose
+          exactement trois questions, en SQL pur :
+        </p>
+        <div class="visual">
+          <div class="rfm-cadrans">
+            <div class="cadran r">
+              <div class="dim">Récence</div>
+              <div class="val">373 j</div>
+              <div class="raw">depuis ma dernière commande</div>
+            </div>
+            <div class="cadran f">
+              <div class="dim">Fréquence</div>
+              <div class="val">155</div>
+              <div class="raw">commandes en un an</div>
+            </div>
+            <div class="cadran m">
+              <div class="dim">Montant</div>
+              <div class="val">£56 600</div>
+              <div class="raw">de chiffre d'affaires</div>
+            </div>
+          </div>
+        </div>
+        <pre class="snippet" style="margin-top: 0.95rem;">
+<span class="kw">SELECT</span> customer_id,
+       (ref_date - <span class="kw">MAX</span>(invoice_date)::date)         <span class="kw">AS</span> recency,
+       <span class="kw">COUNT</span>(<span class="kw">DISTINCT</span> invoice_id)                  <span class="kw">AS</span> frequency,
+       <span class="kw">SUM</span>(line_amount)                            <span class="kw">AS</span> monetary,
+       <span class="num">6</span> - <span class="kw">NTILE</span>(<span class="num">5</span>) <span class="kw">OVER</span> (<span class="kw">ORDER BY</span> recency, customer_id) <span class="kw">AS</span> r_score,
+           <span class="kw">NTILE</span>(<span class="num">5</span>) <span class="kw">OVER</span> (<span class="kw">ORDER BY</span> frequency, customer_id) <span class="kw">AS</span> f_score,
+           <span class="kw">NTILE</span>(<span class="num">5</span>) <span class="kw">OVER</span> (<span class="kw">ORDER BY</span> monetary, customer_id) <span class="kw">AS</span> m_score
+<span class="kw">FROM</span> rfm_raw;</pre>
+        <p>
+          Mes scores tombent : <strong style="color: var(--warn);">R = 2</strong>,
+          <strong style="color: var(--green);">F = 5</strong>,
+          <strong style="color: var(--green);">M = 5</strong>.
+          Mon identité reste <code>#17850</code> — mais on m'attribue en plus
+          un <strong>code de classification RFM</strong> à trois chiffres :
+          <code>255</code>. C'est cette étiquette, et non mon ID, qui va
+          décider du segment business auquel j'appartiens. Notez le
+          <code>6 - NTILE(5)</code> sur la récence : on inverse, parce que
+          « petit nombre de jours = très récent = bon ».
+        </p>
+      </section>
+
+      {# ───── Chapitre 5 — Baptême ───── #}
+      <section class="v3-chapter" data-chapter="5">
+        <h2>Je reçois mon nom : <span style="color: var(--segment);">At Risk</span></h2>
+        <p class="voice short">
+          « Je commandais quasiment chaque jour. Et puis plus rien. »
+        </p>
+        <p class="lead">
+          Le script <code>04_segments.sql</code> appelle la fonction SQL
+          <code>fn_rfm_segment(2, 5, 5)</code> et m'attribue mon étiquette
+          business. Pour moi, le verdict tombe :
+        </p>
+        <div class="segment-stamp">
+          <span class="ico">⚠</span>
+          <span>Segment : At Risk</span>
+        </div>
+        <p>
+          Pourquoi pas Champion ? Parce que mes deux dernières dimensions
+          (F = 5, M = 5) crient « top client », mais ma récence (R = 2)
+          murmure « disparu ». C'est exactement le profil que la
+          segmentation RFM est <em>conçue</em> pour repérer : les clients à
+          forte valeur qu'on est en train de perdre <strong>silencieusement</strong>.
+        </p>
+        <pre class="snippet">
+<span class="cmt">-- ❌ Mauvais ordre : un CASE WHEN trop large absorbe les sous-segments</span>
+<span class="kw">CASE WHEN</span> r &gt;= <span class="num">4</span> <span class="kw">AND</span> f &lt;= <span class="num">3</span> <span class="kw">THEN</span> <span class="grn">'Potential Loyalist'</span>   <span class="cmt">← absorbe 'New'</span>
+     <span class="kw">WHEN</span> r = <span class="num">5</span> <span class="kw">AND</span> f = <span class="num">1</span>    <span class="kw">THEN</span> <span class="grn">'New Customers'</span>        <span class="cmt">← jamais atteint</span>
+
+<span class="cmt">-- ✅ Spécifique → général. Sans ce fix : 9/11 segments peuplés.</span>
+<span class="kw">CASE WHEN</span> r = <span class="num">5</span> <span class="kw">AND</span> f = <span class="num">1</span>          <span class="kw">THEN</span> <span class="grn">'New Customers'</span>
+     <span class="kw">WHEN</span> r &gt;= <span class="num">4</span> <span class="kw">AND</span> f &lt;= <span class="num">2</span>       <span class="kw">THEN</span> <span class="grn">'Promising'</span>
+     <span class="kw">WHEN</span> r &lt;= <span class="num">2</span> <span class="kw">AND</span> f &gt;= <span class="num">4</span> <span class="kw">AND</span> m &gt;= <span class="num">4</span>  <span class="kw">THEN</span> <span class="grn">'At Risk'</span>   <span class="cmt">← me voici</span></pre>
+      </section>
+
+      {# ───── Chapitre 6 — Démo Airflow LIVE ───── #}
+      <section class="v3-chapter" data-chapter="6">
+        <h2>Mon orchestrateur prend la main <span style="color: var(--why); font-size: 0.7em;">★ démo live</span></h2>
+        <p class="voice short">
+          « Tout ce que je viens de raconter, regardez : Airflow le rejoue
+          devant vous. »
+        </p>
+        <p>
+          Tout le voyage que je viens de décrire est en réalité orchestré par
+          un DAG Airflow nommé <code>rfm_pipeline</code>, en 4 tâches
+          idempotentes. Cliquez sur le bouton : le DAG est déclenché en
+          direct via l'API REST d'Airflow 3, et vous voyez les tâches
+          s'exécuter au fur et à mesure dans le panneau de droite.
+        </p>
+        <div class="demo-grid">
+          <div class="demo-pad">
+            <p style="font-size: 0.78rem; margin: 0 0 0.6rem 0; color: var(--ink-mute);">
+              DAG <code style="color: var(--voice);">rfm_pipeline</code>
+            </p>
+            <button id="btnTrigger" class="btn-trigger">▶ Trigger DAG</button>
+            <div id="afHealth" class="demo-status">vérification…</div>
+            <p style="font-size: 0.7rem; color: var(--ink-mute); margin: 0.7rem 0 0 0; line-height: 1.45;">
+              <code>ingest_xlsx</code> ≈ 90 s<br>
+              les 3 autres ≈ 10 s
+            </p>
+          </div>
+          <div>
+            <div id="runHeader" style="font-size: 0.74rem; color: var(--ink-mute); margin-bottom: 0.55rem;">
+              Aucun run récupéré
+            </div>
+            <div class="task-table" id="taskList"></div>
+            <div class="live-narrative" id="liveNarrative">
+              <div class="ln-eyebrow">
+                <span class="led"></span>
+                <span id="lnLabel">En attente du déclenchement…</span>
+              </div>
+              <div class="ln-text" id="lnText">« Cliquez sur Trigger : je vais vous raconter en direct ce qu'il m'arrive. »</div>
+              <div class="ln-progress">
+                <div class="ln-bar"><div id="lnBar"></div></div>
+                <span id="lnTimer">—</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <p style="margin-top: 0.85rem;">
+          <strong>L'idempotence partout</strong> : chaque tâche commence par
+          un <code>TRUNCATE</code> en aval, donc on peut relancer le DAG
+          autant de fois qu'on veut sans doublons et sans état résiduel.
+          C'est ce qui rend ma résurrection 100% reproductible.
+        </p>
+      </section>
+
+      {# ───── Chapitre 7 — Dashboard ───── #}
+      <section class="v3-chapter" data-chapter="7">
+        <h2>Je deviens un point sur un dashboard</h2>
+        <p class="voice short">
+          « Cherchez-moi : je suis dans la cellule R2 / F5. »
+        </p>
+        <p>
+          Une fois l'historique calculé par la 4ᵉ tâche
+          <code>compute_rfm_history</code>, le dashboard Flask vient lire la
+          vue <code>analytics.customer_rfm_v</code> et me dessine — moi et
+          mes 5 851 voisins — sous forme d'une heatmap Récence × Fréquence
+          interactive (Plotly).
+        </p>
+        <div id="heatmapSlot" class="plot-slot" style="height: 300px;"></div>
+        <p style="margin-top: 0.6rem;">
+          Lecture : la cellule en haut à droite (R5, F5) regroupe les
+          Champions ; je suis tout en bas à droite (R2, F5) — un cluster
+          dense, et cliniquement défini comme « client fidèle qu'on vient
+          de perdre ». Sans cette grille, je serais resté invisible noyé
+          dans 5 852 lignes.
+        </p>
+      </section>
+
+      {# ───── Chapitre 8 — Conclusion + Q&A ───── #}
+      <section class="v3-chapter" data-chapter="8">
+        <h2>Et si je dormais ? <span style="color: var(--ink-mute); font-size: 0.6em;">— ce qu'on en fait</span></h2>
+        <p class="voice short">
+          « Je ne suis pas qu'une photo. Je suis aussi une trajectoire. »
+        </p>
+        <p>
+          La quatrième tâche du DAG, <code>compute_rfm_history</code>, ne
+          recalcule pas mon segment qu'une fois — elle le recalcule à la fin
+          de chaque mois, sur 25 mois rétrospectifs. Résultat :
+          <strong>{{ "{:,}".format(history.total_rows).replace(",", " ") }} lignes</strong>
+          dans <code>analytics.customer_rfm_history</code>, qui permettent
+          de voir l'évolution de la composition de la base dans le temps :
+        </p>
+        <div id="movementsSlot" class="plot-slot" style="height: 280px;"></div>
+        <p style="margin-top: 0.85rem;">
+          <strong>Ce qu'on retient.</strong> Le projet n'est pas un simple
+          calcul RFM. C'est un pipeline conteneurisé, orchestré, idempotent
+          et explicable de bout en bout — capable de transformer 1,07 M de
+          lignes brutes en 5 852 portraits exploitables, et capable surtout
+          de repérer des clients comme moi : ceux qui partent sans bruit, et
+          que personne n'aurait vus sans cette grille de lecture.
+        </p>
+        <p class="lead" style="margin-top: 1.2rem; color: var(--voice); font-style: italic; font-family: 'Lora', serif;">
+          Merci. Vos questions ?
+        </p>
+        <p style="margin-top: 1.4rem;">
+          <a href="/" style="display: inline-block; padding: 0.65rem 1.3rem; background: rgba(127, 219, 255, 0.08); color: var(--voice); border: 1px solid rgba(127, 219, 255, 0.32); border-radius: 0.45rem; font-size: 0.85rem; text-decoration: none; letter-spacing: 0.04em; font-family: 'Inter', sans-serif;">
+            ← Retour au dashboard
+          </a>
+        </p>
+      </section>
+
+    </article>
+
+    {# ─── CARTE D'IDENTITÉ (droite, persistante) ─────────────────────── #}
+    <aside class="v3-id">
+      <div class="id-card">
+        <div class="id-eyebrow">Carte d'identité du datum</div>
+        <div class="id-name">#17850</div>
+        <div class="id-row"><span class="k">Pays</span><span class="v">🇬🇧 United Kingdom</span></div>
+        <div class="id-row"><span class="k">1ʳᵉ commande</span><span class="v">2009-12-05</span></div>
+        <div class="id-row"><span class="k">Dernière commande</span><span class="v">2010-12-02</span></div>
+        <div class="id-row"><span class="k">Activité</span><span class="v">Revendeur déco</span></div>
+
+        <div class="id-rfm">
+          <div class="cell r locked" id="cellR">
+            <div class="k">R</div>
+            <div class="v">?</div>
+          </div>
+          <div class="cell f locked" id="cellF">
+            <div class="k">F</div>
+            <div class="v">?</div>
+          </div>
+          <div class="cell m locked" id="cellM">
+            <div class="k">M</div>
+            <div class="v">?</div>
+          </div>
+        </div>
+
+        <div class="id-segment locked" id="segBox">
+          Segment à révéler
+        </div>
+
+        <div class="id-trail" id="trailBox">
+          <strong>Statut :</strong> en attente d'embarquement.
+        </div>
+      </div>
+    </aside>
+  </div>
+
+  {# ═══ FOOTER ════════════════════════════════════════════════════════ #}
+  <footer class="v3-footer">
+    <div class="v3-progress" id="progress">
+      {# 9 steps, indices 0..8 — peuplé par JS #}
+    </div>
+    <div class="v3-why">
+      <span class="why-tag">Pourquoi ce choix ?</span>
+      <span class="why-text" id="whyText">Lecture par <strong>narration</strong> : on apprend RFM en suivant un client réel, pas en récitant des concepts.</span>
+      <span class="nav-hint"><kbd>←</kbd> <kbd>→</kbd> ou <kbd>espace</kbd> pour naviguer</span>
+    </div>
+  </footer>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+  <script>
+    // ─────────────────────────────────────────────────────────────────
+    // Le Voyage du Datum — mini-router maison + horloge + carte ID
+    // ─────────────────────────────────────────────────────────────────
+
+    // Contenu pour chaque chapitre :
+    //   - title : ce qu'affiche le header
+    //   - why   : encart "pourquoi ce choix" du footer
+    //   - id    : état de la carte d'identité (R/F/M, segment, trail)
+    const CHAPTERS = [
+      {
+        title: "Le Voyage du Datum",
+        why:   "Lecture par <strong>narration</strong> : on apprend RFM en suivant un client réel, pas en récitant des concepts.",
+        id:    { r: null, f: null, m: null, seg: null, trail: "<strong>Statut :</strong> en attente d'embarquement." }
+      },
+      {
+        title: "Chapitre 1 — Ma naissance dans un fichier Excel",
+        why:   "<strong>uv + openpyxl streaming + COPY FROM</strong> : 1,07 M lignes en 2-5 s, mémoire constante. <em>pandas chargeait 5 GB de RAM et cassait le typage des entiers.</em>",
+        id:    { r: null, f: null, m: null, seg: null, trail: "<strong>Le 5 décembre 2009</strong>, je passe ma première commande. Je suis embarqué dans <code>raw.online_retail</code>." }
+      },
+      {
+        title: "Chapitre 2 — On m'embarque dans un conteneur",
+        why:   "<strong>Docker Compose</strong> plutôt que K8s ou install système : un seul YAML, 8 services, reproductible partout. Postgres a deux bases (airflow + rfm_db).",
+        id:    { r: null, f: null, m: null, seg: null, trail: "Je vis dans <code>postgres:16</code>, conteneurisé. Mes voisins sont <code>airflow</code>, <code>redis</code>, le dashboard…" }
+      },
+      {
+        title: "Chapitre 3 — Mon premier filtre",
+        why:   "<strong>Cascade exclusive en SQL</strong> dans <code>02_clean.sql</code> : chaque ligne brute tombe dans exactement un bucket. Audit traçable, idempotent, rejouable.",
+        id:    { r: null, f: null, m: null, seg: null, trail: "Je passe le filtre. 155 lignes me concernent, toutes valides. Je suis dans <code>clean.sales</code>." }
+      },
+      {
+        title: "Chapitre 4 — On me mesure : R, F, M",
+        why:   "<strong>NTILE(5) en SQL pur</strong> avec tie-breaker <code>customer_id</code> : 5 groupes égaux, scores stables d'un rerun à l'autre. <em>Pas besoin de pandas.</em>",
+        id:    { r: 2, f: 5, m: 5, seg: null, trail: "Mes 3 cadrans tombent : <strong>R=2, F=5, M=5</strong>. Code RFM = <strong>255</strong>. <em>F et M au max, R en bas…</em>" }
+      },
+      {
+        title: "Chapitre 5 — Je reçois mon nom",
+        why:   "<strong>Ordre des CASE WHEN</strong> : du plus spécifique au plus général. Sans ce fix, on n'avait que 9/11 segments peuplés (les autres étaient absorbés).",
+        id:    { r: 2, f: 5, m: 5, seg: "At Risk", trail: "<strong>At Risk.</strong> Je commandais quasiment chaque jour, et puis plus rien depuis 373 jours." }
+      },
+      {
+        title: "Chapitre 6 — Mon orchestrateur prend la main",
+        why:   "<strong>Airflow + idempotence</strong> : chaque tâche TRUNCATE ses tables aval avant d'écrire. Le DAG est rejouable indéfiniment, sans doublon ni état résiduel.",
+        id:    { r: 2, f: 5, m: 5, seg: "At Risk", trail: "Le DAG <code>rfm_pipeline</code> rejoue tout mon parcours en ~100 s : <code>ingest → clean → segment → history</code>." }
+      },
+      {
+        title: "Chapitre 7 — Je deviens un point sur un dashboard",
+        why:   "<strong>Plotly + Flask</strong> servis par les routes <code>/recency</code>, <code>/frequency</code>, <code>/monetary</code>. La heatmap R×F rend mon profil <em>visible</em> instantanément.",
+        id:    { r: 2, f: 5, m: 5, seg: "At Risk", trail: "Cherchez-moi dans la heatmap : <strong>cellule (R2, F5)</strong>. Cluster dense, hautement actionnable." }
+      },
+      {
+        title: "Chapitre 8 — Et si je dormais ?",
+        why:   "<strong>Snapshot history mensuel</strong> via <code>compute_rfm_history</code> : on voit la <em>trajectoire</em> de la base, pas seulement une photo finale. Feature unique de ce projet.",
+        id:    { r: 2, f: 5, m: 5, seg: "At Risk", trail: "Je n'étais pas qu'une photo : j'étais une trajectoire. <strong>RFM m'a donné un nom avant qu'on m'oublie.</strong>" }
+      }
+    ];
+
+    // ─── Router ──────────────────────────────────────────────────────
+    let currentChap = 0;
+    const sections = document.querySelectorAll('.v3-chapter');
+    const progressEl = document.getElementById('progress');
+
+    // Build progress bar
+    for (let i = 0; i < CHAPTERS.length; i++) {
+      const step = document.createElement('div');
+      step.className = 'step';
+      step.dataset.chapter = i;
+      step.title = CHAPTERS[i].title;
+      step.addEventListener('click', () => goTo(i));
+      progressEl.appendChild(step);
+    }
+
+    function goTo(n) {
+      n = Math.max(0, Math.min(CHAPTERS.length - 1, n));
+      currentChap = n;
+      // Activer la section
+      sections.forEach(s => s.classList.remove('active'));
+      const target = document.querySelector(`[data-chapter="${n}"]`);
+      if (target) target.classList.add('active');
+      // Header
+      document.getElementById('chapNum').textContent = n;
+      document.getElementById('chapTitle').textContent = CHAPTERS[n].title;
+      // Footer why
+      document.getElementById('whyText').innerHTML = CHAPTERS[n].why;
+      // Progress bar
+      progressEl.querySelectorAll('.step').forEach((s, i) => {
+        s.classList.toggle('done',   i <  n);
+        s.classList.toggle('active', i === n);
+      });
+      // Carte d'identité
+      updateIdCard(CHAPTERS[n].id);
+      // Hash URL
+      history.replaceState(null, '', '#chap-' + n);
+      // Resize plotly si on arrive sur les chapitres concernés
+      if (n === 7 && window._heatmap) Plotly.Plots.resize(document.getElementById('heatmapSlot'));
+      if (n === 8 && window._movements) Plotly.Plots.resize(document.getElementById('movementsSlot'));
+    }
+
+    // ─── Carte d'identité ────────────────────────────────────────────
+    function updateIdCard(state) {
+      const cells = { r: document.getElementById('cellR'), f: document.getElementById('cellF'), m: document.getElementById('cellM') };
+      ['r', 'f', 'm'].forEach(k => {
+        const cell = cells[k];
+        const v = state[k];
+        if (v == null) {
+          cell.classList.add('locked');
+          cell.querySelector('.v').textContent = '?';
+        } else {
+          cell.classList.remove('locked');
+          cell.querySelector('.v').textContent = v;
+        }
+      });
+      const seg = document.getElementById('segBox');
+      if (state.seg) {
+        seg.classList.remove('locked');
+        seg.textContent = 'Segment : ' + state.seg;
+      } else {
+        seg.classList.add('locked');
+        seg.textContent = 'Segment à révéler';
+      }
+      document.getElementById('trailBox').innerHTML = state.trail;
+    }
+
+    // ─── Navigation clavier ──────────────────────────────────────────
+    document.addEventListener('keydown', (e) => {
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+      if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') {
+        e.preventDefault();
+        goTo(currentChap + 1);
+      } else if (e.key === 'ArrowLeft' || e.key === 'PageUp') {
+        e.preventDefault();
+        goTo(currentChap - 1);
+      } else if (e.key === 'Home') {
+        e.preventDefault();
+        goTo(0);
+      } else if (e.key === 'End') {
+        e.preventDefault();
+        goTo(CHAPTERS.length - 1);
+      }
+    });
+
+    // ─── Hash URL initial ────────────────────────────────────────────
+    const initialHash = window.location.hash.match(/#chap-(\d+)/);
+    if (initialHash) goTo(parseInt(initialHash[1], 10));
+    else goTo(0);
+
+    // ─── Horloge soutenance ──────────────────────────────────────────
+    const clockStart = Date.now();
+    const clockEl = document.getElementById('clock');
+    const clockValEl = document.getElementById('clockVal');
+    function tick() {
+      const elapsed = Math.floor((Date.now() - clockStart) / 1000);
+      const m = Math.floor(elapsed / 60);
+      const s = elapsed % 60;
+      clockValEl.textContent = String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
+      // 13 min = warn (jaune), 15 min = over (rouge pulsant)
+      clockEl.classList.toggle('warn', elapsed >= 780 && elapsed < 900);
+      clockEl.classList.toggle('over', elapsed >= 900);
+    }
+    setInterval(tick, 1000);
+    tick();
+
+    // ─── Plotly charts (chapitres 7 et 8) ────────────────────────────
+    const heatmapFig   = {{ heatmap_fig | safe }};
+    const movementsFig = {{ movements_pct_fig | safe }};
+    const plotlyCfg = { responsive: true, displaylogo: false, modeBarButtonsToRemove: ['lasso2d', 'select2d', 'autoScale2d'] };
+
+    // Adapter la couleur de fond / police au thème sombre
+    function themeFig(fig) {
+      fig.layout = fig.layout || {};
+      fig.layout.paper_bgcolor = 'rgba(0,0,0,0)';
+      fig.layout.plot_bgcolor  = 'rgba(0,0,0,0)';
+      fig.layout.font = { color: '#e8eef7', family: 'Inter, sans-serif', size: 11 };
+      fig.layout.margin = { l: 50, r: 20, t: 30, b: 40 };
+      return fig;
+    }
+
+    Plotly.newPlot('heatmapSlot',   themeFig(heatmapFig).data,   themeFig(heatmapFig).layout,   plotlyCfg);
+    Plotly.newPlot('movementsSlot', themeFig(movementsFig).data, themeFig(movementsFig).layout, plotlyCfg);
+    window._heatmap = true;
+    window._movements = true;
+
+    // ─────────────────────────────────────────────────────────────────
+    // DÉMO AIRFLOW LIVE (chapitre 6) — réutilise /api/airflow/*
+    // ─────────────────────────────────────────────────────────────────
+    let pollHandle = null;
+    let airflowAvailable = false;
+    // Compteur de session : incrémenté à chaque Trigger.
+    // Permet d'invalider les setTimeout(clearInterval) pending d'une
+    // session précédente pour qu'ils ne tuent pas le polling actif
+    // après un nouveau trigger.
+    let pollSession = 0;
+
+    // ─── Livestream narratif ─────────────────────────────────────────
+    // Pour chaque task, on a (durée approximative en s) et N phases
+    // de narration first-person que l'on déroule au prorata de la durée.
+    // Note : load_segments dure ~1-2 s — trop court pour avoir sa propre
+    // phase live. Sa phrase de baptême est récupérée comme PRÉLUDE de
+    // compute_rfm_history (affichée 3 s avant les phases normales, comme
+    // un récap post-mortem de la task qui vient de finir).
+    const NARRATIVE = {
+      ingest_xlsx: {
+        duration: 81,
+        label: "ingest_xlsx · ingestion XLSX → raw",
+        phases: [
+          "« Je suis dans le fichier Excel. openpyxl ouvre le classeur en read-only… »",
+          "« Pas de pandas, surtout pas : il casterait customer_id en float64 et briserait toutes les jointures à venir. »",
+          "« Ligne par ligne, je suis transféré vers un CSV temporaire — mémoire constante. »",
+          "« Une seule ligne en RAM à la fois, jamais plus. C'est ce qui rend tenable les 1,07 millions. »",
+          "« Le COPY FROM STDIN m'écrit dans raw.online_retail. C'est rapide. »",
+          "« Sanity check : 1 067 371 lignes attendues, 1 067 371 trouvées. ✓ »"
+        ]
+      },
+      transform_clean_rfm: {
+        duration: 12,
+        label: "transform_clean_rfm · cleaning + scoring",
+        phases: [
+          "« La cascade exclusive me trie. Je passe les 4 buckets sans broncher. »",
+          "« NTILE(5) calcule mes scores R, F, M en SQL pur. Verdict imminent. »"
+        ]
+      },
+      compute_rfm_history: {
+        duration: 17,
+        label: "compute_rfm_history · snapshot mensuel",
+        prelude: "« load_segments vient de finir : fn_rfm_segment(2, 5, 5) m'a attribué mon nom — At Risk. ✓ »",
+        preludeDuration: 5500,
+        phases: [
+          "« Et maintenant, le snapshot mensuel rejoue 25 mois d'historique rétrospectif… »",
+          "« 97 666 lignes d'historisation : ma trajectoire est gravée. »"
+        ]
+      }
+    };
+    const FINAL_LABEL = "DAG terminé";
+    const FINAL_PHRASE = "« Le DAG complet en ~110 secondes. Je suis vivant dans le dashboard. ✓ »";
+
+    let lnState = {
+      task: null,        // task_id en cours d'animation
+      taskStart: 0,      // timestamp début de cette task (ms)
+      phaseIdx: 0,       // index de la phase courante
+      phaseTimer: null,  // setInterval pour avancer les phases
+      barTimer: null,    // setInterval pour la barre de progression
+      preludeTimer: null,// setTimeout pour la fin du prélude
+      done: false        // tout le DAG est terminé
+    };
+
+    function lnSetText(text) {
+      const el = document.getElementById('lnText');
+      el.classList.add('fade');
+      setTimeout(() => { el.textContent = text; el.classList.remove('fade'); }, 380);
+    }
+    function lnSetLabel(text) {
+      document.getElementById('lnLabel').textContent = text;
+    }
+    function lnReset() {
+      if (lnState.phaseTimer)  clearInterval(lnState.phaseTimer);
+      if (lnState.barTimer)    clearInterval(lnState.barTimer);
+      if (lnState.preludeTimer) clearTimeout(lnState.preludeTimer);
+      lnState = { task: null, taskStart: 0, phaseIdx: 0, phaseTimer: null, barTimer: null, preludeTimer: null, done: false, queuedShown: false };
+      const box = document.getElementById('liveNarrative');
+      box.classList.remove('live', 'done');
+      document.getElementById('lnBar').style.width = '0%';
+      document.getElementById('lnTimer').textContent = '—';
+    }
+    function lnStartTask(taskId) {
+      const spec = NARRATIVE[taskId];
+      if (!spec) return;  // task sans phases (ex: load_segments) → on garde l'affichage courant
+      // Reset des timers de la task précédente
+      if (lnState.phaseTimer)  clearInterval(lnState.phaseTimer);
+      if (lnState.barTimer)    clearInterval(lnState.barTimer);
+      if (lnState.preludeTimer) clearTimeout(lnState.preludeTimer);
+
+      const box = document.getElementById('liveNarrative');
+      box.classList.add('live');
+      box.classList.remove('done');
+      lnState.task = taskId;
+      lnState.taskStart = Date.now();
+      lnState.phaseIdx = 0;
+
+      lnSetLabel(spec.label);
+
+      // Helper : démarre le défilement des phases normales
+      const startPhases = (offsetMs) => {
+        if (lnState.task !== taskId) return;
+        offsetMs = offsetMs || 0;
+        lnSetText(spec.phases[0]);
+        const remaining = (spec.duration * 1000) - offsetMs;
+        const phaseDur = remaining / spec.phases.length;
+        lnState.phaseTimer = setInterval(() => {
+          lnState.phaseIdx++;
+          if (lnState.phaseIdx >= spec.phases.length) {
+            clearInterval(lnState.phaseTimer);
+            return;
+          }
+          lnSetText(spec.phases[lnState.phaseIdx]);
+        }, phaseDur);
+      };
+
+      // Si la task a un prélude (récap d'une task précédente très courte),
+      // on l'affiche d'abord, puis on enchaîne sur les phases normales.
+      if (spec.prelude) {
+        const preludeDur = spec.preludeDuration || 3000;
+        lnSetText(spec.prelude);
+        lnState.preludeTimer = setTimeout(() => startPhases(preludeDur), preludeDur);
+      } else {
+        startPhases(0);
+      }
+
+      // Barre de progression : update toutes les 250 ms
+      lnState.barTimer = setInterval(() => {
+        const elapsed = (Date.now() - lnState.taskStart) / 1000;
+        const pct = Math.min(100, (elapsed / spec.duration) * 100);
+        document.getElementById('lnBar').style.width = pct.toFixed(1) + '%';
+        document.getElementById('lnTimer').textContent =
+          Math.floor(elapsed) + 's / ' + spec.duration + 's';
+      }, 250);
+    }
+    function lnFinish() {
+      if (lnState.phaseTimer)  clearInterval(lnState.phaseTimer);
+      if (lnState.barTimer)    clearInterval(lnState.barTimer);
+      if (lnState.preludeTimer) clearTimeout(lnState.preludeTimer);
+      lnState.done = true;
+      lnState.task = null;
+      const box = document.getElementById('liveNarrative');
+      box.classList.remove('live');
+      box.classList.add('done');
+      lnSetLabel(FINAL_LABEL);
+      lnSetText(FINAL_PHRASE);
+      document.getElementById('lnBar').style.width = '100%';
+      document.getElementById('lnTimer').textContent = 'done';
+    }
+    function lnSyncWithTasks(data) {
+      if (!data || !data.run) return;
+      // Si tout le run est terminé → écran final
+      if (data.run.state === 'success' || data.run.state === 'failed') {
+        if (!lnState.done) lnFinish();
+        return;
+      }
+      // Cherche la première task running
+      const runningTask = (data.tasks || []).find(t => t.state === 'running');
+      if (runningTask) {
+        if (runningTask.task_id !== lnState.task) {
+          lnStartTask(runningTask.task_id);
+        }
+        return;
+      }
+      // Aucune task running mais le run est queued/scheduled :
+      // afficher un message d'attente une fois (sans repeating)
+      // pour combler le silence avant que ingest_xlsx ne démarre.
+      if (lnState.task === null && !lnState.queuedShown) {
+        lnState.queuedShown = true;
+        const box = document.getElementById('liveNarrative');
+        box.classList.add('live');
+        lnSetLabel('rfm_pipeline · ' + (data.run.state || 'queued'));
+        lnSetText('« Je suis dans la file d\'attente du scheduler. Un worker Celery va me prendre en charge dans un instant… »');
+      }
+    }
+
+    function setBtnEnabled(enabled) {
+      const btn = document.getElementById('btnTrigger');
+      if (!btn) return;
+      btn.disabled = !enabled;
+      btn.textContent = enabled ? '▶ Trigger DAG' : '▶ Trigger DAG (offline)';
+    }
+
+    async function checkAirflowHealth() {
+      const elem = document.getElementById('afHealth');
+      try {
+        const r = await fetch('/api/airflow/health');
+        const j = await r.json();
+        if (j.ok) {
+          airflowAvailable = true;
+          elem.textContent = '✓ Airflow up · scheduler ' + j.scheduler;
+          elem.className = 'demo-status up';
+          setBtnEnabled(true);
+        } else {
+          airflowAvailable = false;
+          elem.textContent = '⊘ Airflow non démarré';
+          elem.className = 'demo-status down';
+          setBtnEnabled(false);
+        }
+      } catch (e) {
+        airflowAvailable = false;
+        elem.textContent = '⊘ Démo désactivée';
+        elem.className = 'demo-status down';
+        setBtnEnabled(false);
+      }
+      return airflowAvailable;
+    }
+
+    function renderTaskPanel(data) {
+      const header = document.getElementById('runHeader');
+      const list = document.getElementById('taskList');
+      if (!header || !list) return;
+      if (!data.run) {
+        header.textContent = 'Aucun run récupéré';
+        list.innerHTML = '';
+        return;
+      }
+      const run = data.run;
+      header.innerHTML = '<strong>' + run.dag_run_id + '</strong> · '
+                       + '<span class="state ' + (run.state || '') + '">' + (run.state || '?') + '</span>';
+      let html = '';
+      data.tasks.forEach(t => {
+        const dur = t.duration ? Math.round(t.duration) + ' s' : '—';
+        html += '<div class="task-row">'
+              +   '<span><code style="background: transparent; color: var(--voice);">' + t.task_id + '</code></span>'
+              +   '<span class="dur">' + dur + '</span>'
+              +   '<span class="state ' + (t.state || 'idle') + '">' + (t.state || 'idle') + '</span>'
+              + '</div>';
+      });
+      list.innerHTML = html;
+    }
+
+    async function pollLatestRun() {
+      try {
+        const r = await fetch('/api/airflow/runs/latest');
+        const j = await r.json();
+        renderTaskPanel(j);
+        lnSyncWithTasks(j);
+        if (j.run && (j.run.state === 'success' || j.run.state === 'failed')) {
+          // Capture la session courante. Si l'utilisateur clique Trigger
+          // avant l'expiration du setTimeout, pollSession aura été
+          // incrémenté et le clearInterval ne s'exécutera pas — ce qui
+          // évite de tuer le polling du nouveau run.
+          const sessionAtCheck = pollSession;
+          setTimeout(() => {
+            if (sessionAtCheck === pollSession && pollHandle) {
+              clearInterval(pollHandle);
+              pollHandle = null;
+            }
+          }, 5000);
+        }
+      } catch (e) { /* silencieux */ }
+    }
+
+    document.getElementById('btnTrigger').addEventListener('click', async () => {
+      const btn = document.getElementById('btnTrigger');
+      btn.disabled = true;
+      btn.textContent = '⏳ Trigger…';
+      // Nouvelle session : invalide tout setTimeout(stop) pending
+      // d'une session précédente qui pourrait tuer notre polling.
+      pollSession++;
+      // Reset + amorce du livestream pour ne pas attendre le 1er poll
+      lnReset();
+      const box = document.getElementById('liveNarrative');
+      box.classList.add('live');
+      lnSetLabel('rfm_pipeline · démarrage…');
+      lnSetText('« On me trigger. Le scheduler me prend en charge — j\'arrive. »');
+      try {
+        const r = await fetch('/api/airflow/trigger', { method: 'POST' });
+        const j = await r.json();
+        btn.textContent = j.ok ? ('✓ ' + (j.dag_run_id || 'triggered')) : ('✗ ' + (j.error || 'erreur'));
+        if (pollHandle) clearInterval(pollHandle);
+        pollLatestRun();
+        pollHandle = setInterval(pollLatestRun, 3000);
+        setTimeout(() => { btn.disabled = false; btn.textContent = '▶ Trigger DAG'; }, 30000);
+      } catch (e) {
+        btn.textContent = '✗ ' + e.message;
+        btn.disabled = false;
+      }
+    });
+
+    // Vérifie Airflow au chargement et démarre un polling léger si disponible
+    checkAirflowHealth().then(ok => {
+      if (ok) {
+        pollLatestRun();
+        pollHandle = setInterval(pollLatestRun, 5000);
+      }
+    });
+  </script>
+{% endblock %}

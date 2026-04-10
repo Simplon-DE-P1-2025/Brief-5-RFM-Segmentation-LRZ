@@ -6,13 +6,20 @@ Tâches (dans l'ordre) :
 
   1. ingest_xlsx           → etl.ingest.ingest()
                               xlsx → CSV temp → COPY → raw.online_retail
-  2. transform_clean_rfm   → 02_clean.sql + 03_rfm.sql
-                              raw → clean.* → analytics.customer_rfm
+  2. transform_clean_rfm   → 00_functions.sql + 02_clean.sql + 03_rfm.sql
+                              installe les fonctions SQL partagées
+                              (fn_rfm_segment, fn_rfm_macro, vue
+                              v_rfm_codes_coverage), puis raw → clean.*
+                              → analytics.customer_rfm
   3. load_segments         → 04_segments.sql + 05_view_rfm_v.sql
-                              CASE WHEN → 11 segments + vues d'enrichissement
+                              fn_rfm_segment → 11 segments + vues
+                              d'enrichissement
   4. compute_rfm_history   → 06_history.sql (extension "matériel supplémentaire")
-                              snapshot mensuel sur 24 mois × ~5 850 clients
+                              snapshot mensuel sur 25 mois (Online Retail II)
                               ≈ 97 K lignes dans analytics.customer_rfm_history
+                              (≈ 4 415 clients/snapshot en moyenne — un client
+                              n'apparaît qu'à partir de sa première vente,
+                              donc les premiers mois sont moins peuplés)
                               alimente les pages Movements + Cohorts du
                               dashboard v2 (Sprint 5)
 
@@ -117,8 +124,16 @@ def task_ingest_xlsx() -> dict:
 
 
 def task_transform_clean_rfm() -> None:
-    """Étape 02+03 : cascade clean + calcul RFM via NTILE(5)."""
+    """Étape 00+02+03 : install des fonctions SQL partagées, cascade
+    clean, puis calcul RFM via NTILE(5).
+
+    00_functions.sql installe analytics.fn_rfm_segment / fn_rfm_macro
+    et la vue de couverture v_rfm_codes_coverage. Ces objets sont
+    consommés par 04_segments.sql, 05_view_rfm_v.sql et 06_history.sql.
+    Idempotent : CREATE OR REPLACE FUNCTION / VIEW.
+    """
     _truncate_downstream()
+    _run_sql_file("00_functions.sql")
     _run_sql_file("02_clean.sql")
     _run_sql_file("03_rfm.sql")
 
@@ -140,8 +155,10 @@ def task_compute_rfm_history() -> None:
       3. Recalcule R/F/M de chaque client à chaque fin de mois en
          utilisant uniquement les ventes ≤ snapshot_date (CTE
          generate_series + agrégat conditionnel)
-      4. Reapplique NTILE(5) puis le CASE WHEN des 11 segments
-      5. INSERT massif (~97 K lignes en ~18 s sur Online Retail II)
+      4. Reapplique NTILE(5) puis fn_rfm_segment / fn_rfm_macro
+      5. INSERT massif (~97 K lignes ≈ 25 snapshots × ~4 415 clients/mois
+         en ~18 s sur Online Retail II — un client n'apparaît qu'à
+         partir de sa première vente, donc < 25 × 5 852)
     """
     import psycopg2
 
