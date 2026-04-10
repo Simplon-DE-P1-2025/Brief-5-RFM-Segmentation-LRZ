@@ -204,6 +204,20 @@ Principaux constats :
 
 ---
 
+
+## Data Quality avec Soda
+
+Le pipeline intègre des contrôles de qualité automatisés à l'aide de **Soda Core**. Ces tests agissent comme des "Data Quality Gates" pour garantir l'intégrité des données à chaque étape critique :
+
+1.  **Post-Ingestion** : Vérification de la volumétrie et de la structure de `raw.online_retail`.
+2.  **Post-Nettoyage** : Validation que `clean.sales` ne contient plus de valeurs nulles sur les identifiants critiques et que les prix sont positifs.
+3.  **Post-Scoring** : Contrôle de la distribution des scores NTILE dans `analytics.customer_rfm` (vérification que les scores sont bien compris entre 1 et 5).
+
+Si un test critique échoue, le pipeline Airflow est stoppé pour éviter la propagation de données erronées vers le dashboard. Les fichiers de configuration se trouvent dans le dossier `soda/`.
+
+---
+
+
 ## Detail du scoring RFM
 
 - Date de reference : MAX(invoice_date) + 1 jour
@@ -253,6 +267,10 @@ Ces valeurs peuvent etre surchargees dans docker-compose.yaml ou via un fichier 
 
 ### Installer les dependances
 
+Soda est utilise comme couche de data quality gates dans le DAG rfm_pipeline_soda.py.
+Apres l ingestion, il execute des controles sur raw.online_retail, puis sur clean.sales et analytics.customer_rfm afin de bloquer la suite du pipeline en cas d anomalie.
+Les regles sont centralisees dans soda/configuration.yaml et soda/checks/*.yaml, avec des verifications sur les volumes, les valeurs manquantes, les doublons et les bornes metier attendues.
+Cette approche permet de securiser les etapes de nettoyage, de scoring RFM et de segmentation avant la publication des donnees dans le dashboard.
 ```bash
 pip install uv
 uv sync
