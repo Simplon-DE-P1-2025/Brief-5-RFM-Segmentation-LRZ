@@ -6,14 +6,14 @@
   Présentation reveal.js — refonte 2026-04-09
   ═══════════════════════════════════════════════════════════════════════
 
-  Structure en 6 actes, 15 minutes :
+  Structure en 6 actes, 15 minutes (17 slides) :
 
-    Acte 1 — Cadrage                 (3 min)   S1-S4
-    Acte 2 — Docker                  (4 min)   S5-S8     ★ nouveau
-    Acte 3 — Le pipeline en logique  (3 min)   S9-S11
-    Acte 4 — Démo Airflow live       (3 min)   S12 à S13 ★ speaker-driven
-    Acte 5 — Démo dashboard          (1m30)    S14-S16
-    Acte 6 — Wrap-up                 (30s+QA)  S17-S18
+    Acte 1 — Cadrage          (3 min)    S1-S4               #58a6ff
+    Acte 2 — Docker           (3 min)    S5-S7               #d2a8ff
+    Acte 3 — Pipeline         (3 min)    S8-S10              #7ee787
+    Acte 4 — Airflow live     (3 min)    S11-S13             #ffa657
+    Acte 5 — Dashboard        (1m30)     S14-S16  (Bubble → Movements → Sankey)
+    Acte 6 — Wrap-up          (30s+QA)   S17
 
   Pour ajouter une image dans une slide :
     <img src="{{ '{{' }} url_for('static', filename='img/presentation/mon.png') {{ '}}' }}">
@@ -53,18 +53,6 @@
       padding: 0.9em 1.1em; border-radius: 0.4em; color: #c9d1d9;
       border: 1px solid #30363d; text-align: left;
     }
-
-    /* ─── Acte 1 : KPI grid ───────────────────────────────────────────── */
-    .reveal .kpi-grid {
-      display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.2rem;
-      max-width: 92%; margin: 0 auto;
-    }
-    .reveal .kpi-cell {
-      background: #161b22; border: 1px solid #30363d; border-radius: 0.5rem;
-      padding: 1.1rem;
-    }
-    .reveal .kpi-cell .lbl { font-size: 0.4em; color: #8b949e; text-transform: uppercase; letter-spacing: 0.05em; }
-    .reveal .kpi-cell .val { font-size: 1.55em; font-weight: 700; color: #58a6ff; }
 
     /* ─── Acte 2 : File tree (S5) ─────────────────────────────────────── */
     .reveal .file-tree {
@@ -128,32 +116,6 @@
     .reveal .layer.code   { border-left-color: #58a6ff; }
     .reveal .layer.switch { border-left-color: #f85149; }
 
-    /* ─── Acte 2 : Host vs container fs (S8) ──────────────────────────── */
-    .reveal .fs-split {
-      display: grid; grid-template-columns: 1fr auto 1fr;
-      gap: 1em; align-items: center; max-width: 95%; margin: 0 auto;
-    }
-    .reveal .fs-col {
-      background: #161b22; border: 1px solid #30363d; border-radius: 0.4em;
-      padding: 0.9em 1em; text-align: left;
-    }
-    .reveal .fs-col h4 {
-      margin: 0 0 0.4em 0; font-size: 0.5em; text-transform: uppercase;
-      color: #8b949e; letter-spacing: 0.08em;
-    }
-    .reveal .fs-col pre {
-      font-family: 'SF Mono', Menlo, monospace; font-size: 0.37em;
-      color: #c9d1d9; background: transparent; line-height: 1.55;
-      margin: 0; border: none; padding: 0;
-    }
-    .reveal .fs-arrow {
-      font-size: 1.4em; color: #58a6ff; text-align: center; line-height: 1;
-    }
-    .reveal .fs-arrow .lbl {
-      display: block; font-size: 0.25em; color: #8b949e; text-transform: uppercase;
-      margin-top: 0.35em; letter-spacing: 0.05em;
-    }
-
     /* ─── Acte 3 : Segments recap table (S11) ─────────────────────────── */
     .reveal table.recap { font-size: 0.45em; margin: 0 auto; border-collapse: collapse; }
     .reveal table.recap th { color: #8b949e; padding: 0.3em 0.6em; font-weight: 500; }
@@ -211,14 +173,6 @@
     }
     .reveal .iframe-wrap iframe { width: 100%; height: 100%; border: 0; }
 
-    /* ─── Acte 4 : Sous-slides parallèles (S12a/b/c) ──────────────────── */
-    .reveal .sub-badge {
-      display: inline-block; padding: 0.2em 0.8em; border-radius: 0.3em;
-      background: #21262d; color: #58a6ff; font-size: 0.4em;
-      text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 0.7em;
-      border: 1px solid #30363d;
-    }
-
     /* ─── Ticker Airflow persistant en bas d'écran (Acte 4) ───────────── */
     .airflow-ticker {
       position: fixed; bottom: 0; left: 0; right: 0;
@@ -241,38 +195,6 @@
     /* ─── Acte 5 : Plotly slides ──────────────────────────────────────── */
     .reveal .plotly-slide { width: 100%; height: 580px; }
 
-    /* ─── Acte 6 : Tech choice cards (S17) ────────────────────────────── */
-    .reveal .tech-grid {
-      display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.9em;
-      max-width: 92%; margin: 0 auto;
-    }
-    .reveal .tech-card {
-      background: #161b22; border: 1px solid #30363d; border-radius: 0.5em;
-      padding: 0.9em; text-align: left;
-    }
-    .reveal .tech-card .icon { font-size: 1.4em; display: block; margin-bottom: 0.15em; }
-    .reveal .tech-card h4 {
-      margin: 0.2em 0 0.3em 0; text-transform: none; font-size: 0.52em; color: #e6edf3;
-    }
-    .reveal .tech-card p { font-size: 0.38em; color: #8b949e; margin: 0; line-height: 1.45; }
-
-    /* ─── Acte 4 : "Pendant que ça tourne" — 3 cartes qui se remplacent ─ */
-    .reveal .piege-stack {
-      position: relative; width: 100%; min-height: 520px;
-      margin: 0 auto; text-align: left;
-    }
-    .reveal .piege-card {
-      position: absolute; inset: 0; display: flex; flex-direction: column;
-      gap: 0.2em; padding: 0.2em 0.4em;
-    }
-    .reveal .piege-card h4 {
-      font-size: 0.52em; color: #79c0ff; margin: 0 0 0.15em;
-      text-transform: none; font-weight: 600;
-    }
-    .reveal .piege-card pre.ascii { font-size: 0.35em; margin: 0.15em 0; }
-    .reveal .piege-card .small-list { margin: 0.3em 0 0 0; }
-    .reveal .piege-card .footnote { margin: 0.3em 0 0 0; }
-
     /* ─── Architecture SVG inline ─────────────────────────────────────── */
     .reveal .arch-svg {
       display: block; margin: 0.4em auto 0; width: 100%;
@@ -281,6 +203,43 @@
     .reveal .slide-svg {
       max-width: 85%; max-height: 560px; margin: 0 auto; display: block;
     }
+
+    /* ─── Badges d'acte (première slide de chaque acte) ───────────────── */
+    .reveal .act-badge {
+      display: inline-block; padding: 0.2em 0.8em; border-radius: 0.3em;
+      font-size: 0.35em; text-transform: uppercase; letter-spacing: 0.1em;
+      margin-bottom: 0.6em; border: 1px solid;
+    }
+    .reveal .act-badge[data-act="2"] { color: #d2a8ff; border-color: #d2a8ff44; background: #d2a8ff11; }
+    .reveal .act-badge[data-act="3"] { color: #7ee787; border-color: #7ee78744; background: #7ee78711; }
+    .reveal .act-badge[data-act="4"] { color: #ffa657; border-color: #ffa65744; background: #ffa65711; }
+    .reveal .act-badge[data-act="5"] { color: #58a6ff; border-color: #58a6ff44; background: #58a6ff11; }
+    .reveal .act-badge[data-act="6"] { color: #58a6ff; border-color: #58a6ff44; background: #58a6ff11; }
+
+    /* ─── S1 : nom de projet + équipe ─────────────────────────────────── */
+    .reveal .project-name { font-size: 0.6em; color: #8b949e; font-weight: 400; letter-spacing: 0.02em; }
+    .reveal .project-name .rfm-letter { color: #58a6ff; font-weight: 700; font-size: 1.15em; }
+    .reveal .team-names { font-size: 0.5em; color: #8b949e; letter-spacing: 0.03em; margin-top: 0.6em; }
+    .reveal .team-names .name { color: #c9d1d9; font-weight: 500; }
+
+    /* ─── S2 : grille 3 cartes brief ──────────────────────────────────── */
+    .reveal .brief-grid {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem;
+      max-width: 92%; margin: 0 auto;
+    }
+    .reveal .brief-card {
+      background: #161b22; border: 1px solid #30363d; border-radius: 0.5rem;
+      padding: 1rem; text-align: left;
+    }
+    .reveal .brief-card .step-num { font-size: 1.6em; font-weight: 800; line-height: 1; }
+    .reveal .brief-card .step-num.c1 { color: #58a6ff; }
+    .reveal .brief-card .step-num.c2 { color: #7ee787; }
+    .reveal .brief-card .step-num.c3 { color: #ffa657; }
+    .reveal .brief-card h4 {
+      font-size: 0.5em; color: #e6edf3; text-transform: none;
+      margin: 0.3em 0 0.4em; font-weight: 600;
+    }
+    .reveal .brief-card p { font-size: 0.4em; color: #8b949e; margin: 0; line-height: 1.5; }
   </style>
 {% endblock %}
 
@@ -308,8 +267,17 @@
 
     {# ───── S1. Titre & équipe ─ 15 s ───── #}
     <section>
+      <p class="project-name" style="margin-bottom: 0.2em;">
+        <span class="rfm-letter">R</span>adio
+        <span class="rfm-letter">F</span>or
+        <span class="rfm-letter">M</span>oskitoes
+      </p>
       <h1>Segmentation RFM</h1>
       <h3 class="accent">Online Retail II — Pipeline end-to-end</h3>
+      <p class="team-names">
+        <span class="name">Romain</span> · <span class="name">Zoubir</span> ·
+        <span class="name">Ahmed</span> · <span class="name">Lounes</span>
+      </p>
       <br>
       <p class="footnote">
         <span class="pill">Docker Compose</span>
@@ -326,15 +294,28 @@
     {# ───── S2. Le brief ─ 45 s ───── #}
     <section>
       <h2>Le brief en 3 lignes</h2>
-      <ul class="small-list">
-        <li>Construire un <strong>pipeline RFM</strong> sur Online Retail II
-            — 1,07 M lignes, ~5 900 clients</li>
-        <li>L'<strong>orchestrer avec Apache Airflow</strong> et tout
-            conteneuriser avec <strong>Docker Compose</strong>
-            (objets principaux du brief)</li>
-        <li>Le démontrer en 15 min : <strong>Docker → pipeline → dashboard</strong>,
-            avec preuve de compréhension</li>
-      </ul>
+      <div class="brief-grid">
+        <div class="brief-card">
+          <div class="step-num c1">1</div>
+          <h4>Pipeline RFM</h4>
+          <p>Construire un <strong>pipeline RFM</strong> sur Online Retail II
+             — 1,07 M lignes, ~5 900 clients</p>
+        </div>
+        <div class="brief-card">
+          <div class="step-num c2">2</div>
+          <h4>Orchestration</h4>
+          <p>L'<strong>orchestrer avec Apache Airflow</strong> et tout
+             conteneuriser avec <strong>Docker Compose</strong>
+             (objets principaux du brief)</p>
+        </div>
+        <div class="brief-card">
+          <div class="step-num c3">3</div>
+          <h4>Démonstration</h4>
+          <p>Le démontrer en 15 min :
+             <strong>Docker → pipeline → dashboard</strong>,
+             avec preuve de compréhension</p>
+        </div>
+      </div>
       <p class="footnote" style="margin-top:2em;">
         Ce qu'on va voir aujourd'hui suit exactement cet ordre :
         d'abord le <em>contenant</em>, puis le <em>contenu</em>,
@@ -466,48 +447,13 @@
       </p>
     </section>
 
-    {# ───── S4. Dataset en chiffres ─ 45 s ───── #}
-    <section>
-      <h2>Le dataset en chiffres</h2>
-      <div class="kpi-grid">
-        <div class="kpi-cell">
-          <div class="lbl">Lignes brutes</div>
-          <div class="val">{{ "{:,}".format(kpi_bar.total_raw_lines).replace(",", " ") }}</div>
-        </div>
-        <div class="kpi-cell">
-          <div class="lbl">Ventes propres</div>
-          <div class="val">{{ "{:,}".format(kpi_bar.total_clean_lines).replace(",", " ") }}</div>
-        </div>
-        <div class="kpi-cell">
-          <div class="lbl">Clients RFM</div>
-          <div class="val">{{ "{:,}".format(kpi_bar.total_users).replace(",", " ") }}</div>
-        </div>
-        <div class="kpi-cell">
-          <div class="lbl">Transactions</div>
-          <div class="val">{{ "{:,}".format(kpi_bar.total_transactions).replace(",", " ") }}</div>
-        </div>
-        <div class="kpi-cell">
-          <div class="lbl">Revenu total</div>
-          <div class="val">£{{ "{:,.0f}".format(kpi_bar.total_net_revenue).replace(",", " ") }}</div>
-        </div>
-        <div class="kpi-cell">
-          <div class="lbl">% Churned</div>
-          <div class="val">{{ kpi_bar.pct_churned }}%</div>
-        </div>
-      </div>
-      <p class="footnote" style="margin-top:1em;">
-        Période : déc 2009 → déc 2011 · 24 mois ·
-        ARPU £{{ "{:,.0f}".format(kpi_bar.arpu).replace(",", " ") }} ·
-        ATPU {{ kpi_bar.atpu }}
-      </p>
-    </section>
-
     {# ══════════════════════════════════════════════════════════════════ #}
     {# ACTE 2 — DOCKER : l'objet principal du brief  (4 min)              #}
     {# ══════════════════════════════════════════════════════════════════ #}
 
     {# ───── S5. Arborescence projet ─ 45 s ───── #}
     <section>
+      <div class="act-badge" data-act="2">Acte 2 · Docker</div>
       <h2>Ce qu'on a écrit</h2>
       <pre class="file-tree">
 Brief-5-RFM-Segmentation-LRZ/
@@ -597,7 +543,7 @@ Brief-5-RFM-Segmentation-LRZ/
 
     {# ───── S7. Dockerfile décortiqué en couches ─ 1 min 30 ───── #}
     <section>
-      <h2 style="margin-bottom:0.2em;"><code>Dockerfile</code> — la pile de couches</h2>
+      <h2 style="margin-bottom:0.2em;"><code>Dockerfile</code> ETL — la pile de couches</h2>
       <p class="footnote" style="margin:0 0 0.55em 0;">
         Chaque instruction = un layer cacheable · l'ordre des <code>COPY</code> est <em>capital</em>.
       </p>
@@ -646,60 +592,13 @@ Brief-5-RFM-Segmentation-LRZ/
       </div>
     </section>
 
-    {# ───── S8. Host vs container ─ 45 s ───── #}
-    <section>
-      <h2>Host vs container</h2>
-      <div class="fs-split">
-
-        <div class="fs-col">
-          <h4>Sur ta machine (host)</h4>
-          <pre>~/simplon/…/Brief-5/
-├── etl/
-│   ├── ingest.py
-│   ├── 02_clean.sql
-│   └── …
-├── dags/
-│   └── rfm_pipeline.py
-└── data/
-    └── online_retail_II.xlsx</pre>
-        </div>
-
-        <div class="fs-arrow">
-          →
-          <span class="lbl">volume mount</span>
-        </div>
-
-        <div class="fs-col">
-          <h4>Dans le container airflow</h4>
-          <pre>/opt/airflow/
-├── dags/           ← mappé
-│   └── rfm_pipeline.py
-├── etl/            ← mappé
-│   ├── ingest.py
-│   ├── 02_clean.sql
-│   └── …
-├── config/         ← mappé (airflow.cfg)
-├── plugins/        ← mappé (vide)
-└── logs/           ← mappé</pre>
-        </div>
-
-      </div>
-      <p class="footnote" style="margin-top:1.2em;">
-        Les volumes <code>./dags</code> et <code>./etl</code> sont montés
-        en live côté Airflow : <strong>modifier un SQL ou le DAG sur
-        l'hôte est immédiatement visible dans le container</strong> — pas
-        de rebuild. Le dataset <code>data/online_retail_II.xlsx</code>
-        est embarqué dans l'image ETL via <code>COPY data/ ./data/</code>
-        (voir slide suivante) et n'a donc pas besoin d'un montage.
-      </p>
-    </section>
-
     {# ══════════════════════════════════════════════════════════════════ #}
     {# ACTE 3 — Le pipeline en logique  (3 min)                           #}
     {# ══════════════════════════════════════════════════════════════════ #}
 
     {# ───── S9. Cleaning cascade ─ 1 min ───── #}
     <section>
+      <div class="act-badge" data-act="3">Acte 3 · Pipeline</div>
       <h2>Cleaning : cascade exclusive en 4 buckets</h2>
       {# Placeholder pour cleaning_cascade.svg — en attendant, on garde le
          pre.ascii qui reste lisible avec le fix font-size. #}
@@ -810,6 +709,7 @@ Brief-5-RFM-Segmentation-LRZ/
 
     {# ───── S12. Trigger DAG + démarrage du ticker ───── #}
     <section data-airflow-ticker="true">
+      <div class="act-badge" data-act="4">Acte 4 · Airflow Live</div>
       <h2>Démo Airflow live <span class="accent">⚡</span></h2>
       <div class="airflow-demo">
         <div class="panel">
@@ -837,87 +737,10 @@ Brief-5-RFM-Segmentation-LRZ/
       </p>
     </section>
 
-    {# ───── S12bis. Pendant que ça tourne — 3 pièges évités (fragments empilés) ─────
-       Les 3 fragments se remplacent au même endroit grâce à `fade-in-then-out`
-       + position absolute, pour éviter le débordement vertical. #}
-    <section data-airflow-ticker="true">
-      <div class="sub-badge">Pendant que ça tourne</div>
-      <h2 style="margin-bottom:0.3em;">3 pièges qu'on a évités</h2>
-      <div class="piege-stack">
-
-        {# ─── Carte 1 : pandas customer_id ─── #}
-        <div class="piege-card fragment fade-in-then-out">
-          <h4>1 · Le piège pandas <code>customer_id</code></h4>
-          <pre class="ascii">
-  df = pd.read_excel("online_retail_II.xlsx")
-  df["Customer ID"].dtype
-  # → dtype('<span class="accent-org">float64</span>')   — 12345.0 au lieu de 12345
-
-  # Conséquence : la jointure avec n'importe quelle table
-  # qui a customer_id INTEGER plante silencieusement.
-          </pre>
-          <p class="small-list">
-            <strong>Fix</strong> : <code>customer_id INTEGER NULL</code> dans le DDL
-            Postgres — <code>COPY FROM</code> force le cast à l'entrée,
-            pandas ne voit jamais la colonne.
-          </p>
-        </div>
-
-        {# ─── Carte 2 : CASE WHEN — d'un patchwork fragile à une fonction IMMUTABLE ─── #}
-        <div class="piege-card fragment fade-in-then-out">
-          <h4>2 · Le <code>CASE WHEN</code> — d'un patchwork fragile à une fonction <code>IMMUTABLE</code></h4>
-          <pre class="ascii">
-  <span class="accent-org">❌ Premier jet</span> : CASE à plages — ordre-dépendant, absorbe les sous-segments
-     CASE WHEN r &gt;= 4 AND f &lt;= 3 THEN 'Potential Loyalist'   -- absorbe
-          WHEN r = 5 AND f = 1    THEN 'New Customers'        -- jamais atteint
-     → 9/11 segments peuplés, ~400 clients absorbés à tort.
-
-  <span class="accent-grn">✅ Aujourd'hui</span> : fonction SQL IMMUTABLE, 125 codes exhaustifs, zéro chevauchement
-     CREATE FUNCTION analytics.fn_rfm_segment(r INT, f INT, m INT) RETURNS TEXT
-     LANGUAGE sql IMMUTABLE AS $$
-       SELECT CASE r::TEXT || f::TEXT || m::TEXT
-         WHEN '555' THEN 'Champions'   WHEN '554' THEN 'Champions'
-         WHEN '445' THEN 'Champions'   ...  (122 autres)
-         WHEN '111' THEN 'Lost'        WHEN '151' THEN 'Lost'
-         ELSE 'Unclassified'           -- jamais atteint
-       END;
-     $$;
-          </pre>
-          <p class="footnote">
-            Les <strong>125 codes</strong> (r,f,m) ∈ {1..5}³ sont mappés exactement une fois,
-            prouvé par <code>analytics.v_rfm_codes_coverage</code>. Appelée par
-            <code>04_segments.sql</code> <em>et</em> <code>06_history.sql</code> —
-            une seule source de vérité.
-          </p>
-        </div>
-
-        {# ─── Carte 3 : idempotence Airflow ─── #}
-        <div class="piege-card fragment fade-in-then-out">
-          <h4>3 · Idempotence Airflow</h4>
-          <pre class="ascii">
-  def task_transform_clean_rfm():
-      <span class="accent">_truncate_downstream()</span>          # ← TRUNCATE en début de task
-      _run_sql_file("02_clean.sql")
-      _run_sql_file("03_rfm.sql")
-
-  # Chaque task repart d'un état connu.
-  # → on peut relancer le DAG autant de fois qu'on veut
-  # → pas de doublons, pas d'état résiduel
-          </pre>
-          <p class="small-list">
-            <strong>Pourquoi</strong> : en prod, une task Airflow échoue et retry.
-            Sans idempotence, un retry peut doubler les insertions — avec TRUNCATE
-            en début de task, l'état final est toujours le même.
-          </p>
-        </div>
-
-      </div>
-    </section>
-
     {# ───── S13. Cascade finale : vue grid Airflow ─ 30 s ───── #}
     {# data-airflow-ticker retiré : l'iframe Airflow montre déjà l'état live. #}
     <section>
-      <h2>Les 3 dernières tasks en cascade <span class="accent-grn">✓</span></h2>
+      <h2>Airflow pour les PROS</h2>
       <div class="iframe-wrap">
         <iframe src="{{ airflow_url }}/dags/rfm_pipeline/grid" loading="lazy"></iframe>
       </div>
@@ -933,7 +756,32 @@ Brief-5-RFM-Segmentation-LRZ/
     {# ACTE 5 — Démo dashboard (1 min 30)                                 #}
     {# ══════════════════════════════════════════════════════════════════ #}
 
-    {# ───── S14. Sankey ─ 30 s ───── #}
+    {# ───── S14. Bubble Recency × Monetary par segment ─ 30 s ───── #}
+    <section>
+      <div class="act-badge" data-act="5">Acte 5 · Dashboard</div>
+      <h2>Récence × Monetary par segment</h2>
+      <div id="bubble-slide" class="plotly-slide"></div>
+      <p class="footnote">
+        Une bulle = un des 11 segments · X = récence moyenne (jours) ·
+        Y = CA total du segment (échelle log) · taille = nombre de clients.
+        Les <strong>Champions</strong> sont en haut à gauche, les
+        <strong>Lost</strong> en bas à droite.
+      </p>
+    </section>
+
+    {# ───── S15. Movements ─ 30 s ─ matériel supplémentaire ───── #}
+    <section>
+      <h2>Évolution mensuelle par macro segment <span class="accent-org">★</span></h2>
+      <div id="movements-slide" class="plotly-slide"></div>
+      <p class="footnote">
+        Possible uniquement grâce à la 4ᵉ task Airflow
+        <code>compute_rfm_history</code> — snapshot mensuel sur 24 mois,
+        ~{{ "{:,}".format(history.total_rows).replace(",", " ") }} lignes
+        dans <code>analytics.customer_rfm_history</code>.
+      </p>
+    </section>
+
+    {# ───── S16. Sankey ─ 30 s ───── #}
     <section>
       <h2>Transitions inter-segments (Sankey)</h2>
       <div style="display:flex;align-items:center;gap:.6em;justify-content:center;margin-bottom:.4em;">
@@ -963,80 +811,13 @@ Brief-5-RFM-Segmentation-LRZ/
       </p>
     </section>
 
-    {# ───── S15. Bubble Recency × Monetary par segment ─ 30 s ───── #}
-    <section>
-      <h2>Récence × Monetary par segment</h2>
-      <div id="bubble-slide" class="plotly-slide"></div>
-      <p class="footnote">
-        Une bulle = un des 11 segments · X = récence moyenne (jours) ·
-        Y = CA total du segment (échelle log) · taille = nombre de clients.
-        Les <strong>Champions</strong> sont en haut à gauche, les
-        <strong>Lost</strong> en bas à droite.
-      </p>
-    </section>
-
-    {# ───── S16. Movements ─ 30 s ─ matériel supplémentaire ───── #}
-    <section>
-      <h2>Évolution mensuelle par macro segment <span class="accent-org">★</span></h2>
-      <div id="movements-slide" class="plotly-slide"></div>
-      <p class="footnote">
-        Possible uniquement grâce à la 4ᵉ task Airflow
-        <code>compute_rfm_history</code> — snapshot mensuel sur 24 mois,
-        ~{{ "{:,}".format(history.total_rows).replace(",", " ") }} lignes
-        dans <code>analytics.customer_rfm_history</code>.
-      </p>
-    </section>
-
     {# ══════════════════════════════════════════════════════════════════ #}
     {# ACTE 6 — Wrap-up (30 s + Q&A)                                      #}
     {# ══════════════════════════════════════════════════════════════════ #}
 
-    {# ───── S17. Choix techniques en cards ─ 30 s ───── #}
+    {# ───── S17. Apprentissages + Q&A ───── #}
     <section>
-      <h2>Choix techniques justifiés</h2>
-      <div class="tech-grid">
-
-        <div class="tech-card">
-          <span class="icon">🐳</span>
-          <h4>Docker Compose</h4>
-          <p>Un seul YAML, 10 services (stack Celery complet), reproductible partout. Pas d'install système.</p>
-        </div>
-
-        <div class="tech-card">
-          <span class="icon">⚡</span>
-          <h4>uv</h4>
-          <p>Gestion Python 10× plus rapide que pip, lockfile déterministe.</p>
-        </div>
-
-        <div class="tech-card">
-          <span class="icon">🎯</span>
-          <h4>Postgres-first</h4>
-          <p>Typage dans le DDL. <code>customer_id INTEGER NULL</code> — pandas ne casse pas.</p>
-        </div>
-
-        <div class="tech-card">
-          <span class="icon">📊</span>
-          <h4>NTILE(5) en SQL</h4>
-          <p>Plus rapide que pandas, plus lisible, profite des index Postgres.</p>
-        </div>
-
-        <div class="tech-card">
-          <span class="icon">🔄</span>
-          <h4>Python + .sql séparés</h4>
-          <p>Les SQL sont versionnés indépendamment, le DAG les enchaîne via un wrapper psycopg2 minimal.</p>
-        </div>
-
-        <div class="tech-card">
-          <span class="icon">🎥</span>
-          <h4>Flask + reveal.js</h4>
-          <p>Streamlit ne fait pas de slides plein écran avec charts interactifs. reveal.js oui.</p>
-        </div>
-
-      </div>
-    </section>
-
-    {# ───── S18. Apprentissages + Q&A ───── #}
-    <section>
+      <div class="act-badge" data-act="6">Wrap-up</div>
       <h1>Ce qu'on retient</h1>
       <ul class="small-list">
         <li><strong>Le contenant avant le contenu</strong> :
