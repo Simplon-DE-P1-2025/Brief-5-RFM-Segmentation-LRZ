@@ -1,0 +1,14 @@
+checks for clean.sales:
+  - row_count between 750000 and 850000        # ≈ 798 000 (cf. audit §13)
+  - missing_count(customer_id) = 0
+  - missing_count(invoice_id) = 0
+  - min(quantity) > 0
+  - min(unit_price) > 0
+  - invalid_count(invoice_id) = 0:
+      valid regex: '^[0-9]+$'                  # plus aucun 'C*' après le clean
+
+checks for clean.stock_movements:
+  - row_count between 4000 and 5000            # ≈ 4 382
+
+checks for clean.cancellations:
+  - row_count between 18000 and 21000          # ≈ 19 494
