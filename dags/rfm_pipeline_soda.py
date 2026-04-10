@@ -53,8 +53,8 @@ def _run_soda_scan(check_file: str, data_source: str = "rfm_db") -> None:
     scan.set_data_source_name(data_source)
     
     # Chemins vers la config et les fichiers de checks définis précédemment
-    scan.add_configuration_yaml_file(file_path=str(SODA_DIR / "configuration.yml"))
-    scan.add_soda_checks_yaml_file(file_path=str(SODA_DIR / "checks" / check_file))
+    scan.add_configuration_yaml_file(file_path=str(SODA_DIR / "configuration.yaml"))
+    scan.add_sodacl_yaml_file(str(SODA_DIR / "checks" / check_file))
     
     result = scan.execute()
     
@@ -77,7 +77,15 @@ def task_transform_clean_rfm():
     import psycopg2
     conn = psycopg2.connect(DSN)
     with conn.cursor() as cur:
-        cur.execute("TRUNCATE clean.sales, clean.stock_movements, analytics.customer_rfm RESTART IDENTITY CASCADE;")
+        cur.execute("""
+                TRUNCATE 
+                    clean.sales,
+                    clean.stock_movements,
+                    clean.cancellations,
+                    clean.non_product_lines,
+                    analytics.customer_rfm
+                RESTART IDENTITY CASCADE;
+            """)
     conn.commit()
     conn.close()
 
@@ -121,7 +129,7 @@ with DAG(
     check_raw = PythonOperator(
         task_id="check_raw",
         python_callable=_run_soda_scan,
-        op_kwargs={"check_file": "raw_online_retail.yml"}
+        op_kwargs={"check_file": "raw_online_retail.yaml"}
     )
 
     # 3. Clean & RFM
@@ -134,7 +142,7 @@ with DAG(
     check_clean = PythonOperator(
         task_id="check_silver",
         python_callable=_run_soda_scan,
-        op_kwargs={"check_file": "clean_sales.yml"}
+        op_kwargs={"check_file": "clean_sales.yaml"}
     )
 
     # 5. Segments
@@ -147,7 +155,7 @@ with DAG(
     check_analytics = PythonOperator(
         task_id="check_gold",
         python_callable=_run_soda_scan,
-        op_kwargs={"check_file": "analytics_customer_rfm.yml"}
+        op_kwargs={"check_file": "analytics_customer_rfm.yaml"}
     )
 
     # 7. Histoire
