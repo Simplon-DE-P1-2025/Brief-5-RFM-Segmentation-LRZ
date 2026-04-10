@@ -38,6 +38,30 @@ COMMON_LAYOUT = dict(
     font=dict(size=13),
 )
 
+# Override à appliquer au-dessus de COMMON_LAYOUT pour les slides reveal.js
+# (fond #191919) — sans ça, la font Plotly par défaut est gris foncé et
+# devient illisible sur le fond sombre de la présentation.
+DARK_LAYOUT_OVERRIDE = dict(
+    font=dict(size=14, color="#e6edf3", family="SF Mono, Menlo, Consolas, monospace"),
+    xaxis=dict(
+        color="#e6edf3",
+        gridcolor="#30363d",
+        linecolor="#30363d",
+        zerolinecolor="#30363d",
+        title_font=dict(color="#e6edf3"),
+        tickfont=dict(color="#e6edf3"),
+    ),
+    yaxis=dict(
+        color="#e6edf3",
+        gridcolor="#30363d",
+        linecolor="#30363d",
+        zerolinecolor="#30363d",
+        title_font=dict(color="#e6edf3"),
+        tickfont=dict(color="#e6edf3"),
+    ),
+    legend=dict(font=dict(color="#e6edf3")),
+)
+
 
 # ─────────────────────────────────────────────────────────────────────
 # Palette stable pour les 11 segments (préfixés A.→K.)
@@ -96,7 +120,7 @@ def _empty_figure(message: str) -> str:
 # 1. Treemap des segments (taille = effectif, couleur = monetary moyen)
 # ─────────────────────────────────────────────────────────────────────
 
-def build_treemap(df: pd.DataFrame) -> str:
+def build_treemap(df: pd.DataFrame, dark: bool = False) -> str:
     if df.empty:
         return _empty_figure("Aucune donnée — exécutez le pipeline ETL")
 
@@ -117,9 +141,19 @@ def build_treemap(df: pd.DataFrame) -> str:
             "Monetary moyen : %{color:,.0f} £<br>"
             "<extra></extra>"
         ),
+        textfont=dict(color="#e6edf3" if dark else None),
     )
     fig.update_layout(**COMMON_LAYOUT,
-                      coloraxis_colorbar=dict(title="£ moy."))
+                      coloraxis_colorbar=dict(
+                          title="£ moy.",
+                          tickfont=dict(color="#e6edf3") if dark else None,
+                          title_font=dict(color="#e6edf3") if dark else None,
+                      ))
+    if dark:
+        fig.update_layout(
+            font=dict(size=14, color="#e6edf3",
+                      family="SF Mono, Menlo, Consolas, monospace"),
+        )
     return pio.to_json(fig)
 
 
@@ -187,11 +221,15 @@ def build_monetary_boxplot(df: pd.DataFrame) -> str:
 # v2.1 — Bubble chart segment-level (page Overview 1.3)
 # ─────────────────────────────────────────────────────────────────────
 
-def build_bubble_segments(df: pd.DataFrame) -> str:
+def build_bubble_segments(df: pd.DataFrame, dark: bool = False) -> str:
     """Bubble chart : X = ADSLT, Y = Total Revenue (log), size = users.
 
     1 bulle par segment, couleur stable via SEGMENT_COLORS, label texte
     sur chaque bulle pour l'identification rapide.
+
+    `dark=True` : thème optimisé pour le fond sombre du slide deck reveal.js
+    (font claire, gridlines sombres, bordure claire sur chaque bulle pour
+    faire ressortir les teintes foncées de la palette A.CHAMPIONS, K.LOST…).
     """
     if df.empty:
         return _empty_figure("Aucune donnée — lancez le pipeline RFM")
@@ -214,12 +252,20 @@ def build_bubble_segments(df: pd.DataFrame) -> str:
         },
         hover_data={"total_users": ":,", "total_revenue": ":,.0f"},
     )
-    fig.update_traces(textposition="top center", textfont=dict(size=11))
+    text_color = "#e6edf3" if dark else None
+    marker_line = dict(color="#e6edf3", width=1.5) if dark else dict(width=0)
+    fig.update_traces(
+        textposition="top center",
+        textfont=dict(size=13 if dark else 11, color=text_color),
+        marker=dict(line=marker_line),
+    )
     fig.update_layout(
         **COMMON_LAYOUT,
         showlegend=False,
         yaxis_tickformat=",.0f",
     )
+    if dark:
+        fig.update_layout(**DARK_LAYOUT_OVERRIDE)
     return pio.to_json(fig)
 
 
@@ -426,7 +472,7 @@ MACRO_COLORS = {
 # v3.1 — Stacked column "% Users per Macro Segment by Month"
 # ─────────────────────────────────────────────────────────────────────
 
-def build_macro_movements_pct(df: pd.DataFrame) -> str:
+def build_macro_movements_pct(df: pd.DataFrame, dark: bool = False) -> str:
     """100% stacked column de la composition macro par snapshot."""
     if df.empty:
         return _empty_figure("Aucune donnée — relancez le DAG Airflow")
@@ -454,6 +500,8 @@ def build_macro_movements_pct(df: pd.DataFrame) -> str:
         yaxis_ticksuffix="%",
         legend=dict(orientation="h", yanchor="bottom", y=-0.25, x=0),
     )
+    if dark:
+        fig.update_layout(**DARK_LAYOUT_OVERRIDE)
     return pio.to_json(fig)
 
 

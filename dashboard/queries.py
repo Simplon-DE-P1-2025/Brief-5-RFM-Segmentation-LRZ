@@ -195,12 +195,15 @@ def get_kpi_bar(engine: Engine) -> dict[str, Any]:
     """Bloc de KPI globaux : volumes + taux + moyennes RFM.
 
     Renvoie un dict avec :
+      - total_raw_lines / total_clean_lines : volumes en amont
       - total_users / total_transactions / total_net_revenue
       - adslt (avg recency) / atpu (avg frequency) / arpu (avg monetary)
       - pct_new / pct_returning / pct_churned
     """
     sql = """
         SELECT
+            (SELECT COUNT(*) FROM raw.online_retail)              AS total_raw_lines,
+            (SELECT COUNT(*) FROM clean.sales)                    AS total_clean_lines,
             (SELECT COUNT(*) FROM analytics.customer_rfm)         AS total_users,
             (SELECT COUNT(DISTINCT invoice_id) FROM clean.sales)  AS total_transactions,
             (SELECT SUM(line_amount)::numeric FROM clean.sales)   AS total_net_revenue,
@@ -215,12 +218,16 @@ def get_kpi_bar(engine: Engine) -> dict[str, Any]:
     df = _safe_read_sql(sql, engine)
     if df.empty:
         return {
+            "total_raw_lines": 0, "total_clean_lines": 0,
             "total_users": 0, "total_transactions": 0, "total_net_revenue": 0,
             "adslt": 0, "atpu": 0.0, "arpu": 0,
             "pct_new": 0, "pct_returning": 0, "pct_churned": 0,
         }
-    row = df.iloc[0]
+    # Tables vides → SUM/AVG renvoient NULL → cast direct plante.
+    row = df.iloc[0].fillna(0)
     return {
+        "total_raw_lines":    int(row["total_raw_lines"]),
+        "total_clean_lines":  int(row["total_clean_lines"]),
         "total_users":        int(row["total_users"]),
         "total_transactions": int(row["total_transactions"]),
         "total_net_revenue":  float(row["total_net_revenue"]),
@@ -287,10 +294,14 @@ def get_table_kpi_per_segment(engine: Engine) -> pd.DataFrame:
     """1.5 — Une ligne par segment : counts + parts + moyennes RFM.
 
     Triée par préfixe alphabétique (A.→K.) — du meilleur au pire segment.
+    `macro_segment` est constant par `segment_label` (mapping déterministe
+    via analytics.fn_rfm_macro), on l'expose pour regrouper visuellement
+    dans les templates.
     """
     sql = """
         SELECT
             segment_label,
+            MAX(macro_segment)                                          AS macro_segment,
             COUNT(*)                                                    AS total_users,
             ROUND(100.0 * COUNT(*) / SUM(COUNT(*)) OVER (), 1)          AS pct_users,
             ROUND(100.0 * SUM(monetary) / SUM(SUM(monetary)) OVER (), 1)  AS pct_revenue,

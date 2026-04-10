@@ -12,9 +12,21 @@
 --   ce qui correspond exactement au typage de la colonne.
 --
 -- Volumétrie attendue : 5 500 → 5 943 clients (5 852 sur Online Retail II).
--- Pré-requis : clean.sales rempli
+-- Pré-requis : clean.sales rempli (sinon RAISE EXCEPTION ci-dessous)
 -- Idempotent : suppose un TRUNCATE préalable de analytics.customer_rfm.
 -- ════════════════════════════════════════════════════════════════════
+
+-- Garde-fou : si clean.sales est vide, MAX(invoice_date) renverrait NULL,
+-- ref_date deviendrait NULL et toute la chaîne RFM cascaderait en NULL
+-- silencieusement (recency NULL, scores NULL, segments 'Unclassified').
+-- On préfère échouer explicitement plutôt que produire un RFM corrompu.
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM clean.sales LIMIT 1) THEN
+        RAISE EXCEPTION '[03_rfm] clean.sales est vide — abort RFM (vérifier 02_clean.sql)';
+    END IF;
+END
+$$;
 
 WITH ref AS (
     -- ref_date = jour qui suit la dernière facture du dataset.

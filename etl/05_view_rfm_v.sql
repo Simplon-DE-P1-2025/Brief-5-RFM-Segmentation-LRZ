@@ -62,7 +62,7 @@ SELECT
         WHEN 'Champions'          THEN 'A.CHAMPIONS'
         WHEN 'Loyal Customers'    THEN 'B.LOYAL'
         WHEN 'Potential Loyalist' THEN 'C.POTENTIAL_LOYALIST'
-        WHEN 'Recent Customers'      THEN 'D.RECENT_CUSTOMERS'
+        WHEN 'Recent Customers'   THEN 'D.RECENT_CUSTOMERS'
         WHEN 'Promising'          THEN 'E.PROMISING'
         WHEN 'Need Attention'     THEN 'F.NEED_ATTENTION'
         WHEN 'About to Sleep'     THEN 'G.ABOUT_TO_SLEEP'
@@ -70,17 +70,11 @@ SELECT
         WHEN 'Cannot Lose Them'   THEN 'I.CANNOT_LOSE'
         WHEN 'Hibernating'        THEN 'J.HIBERNATING'
         WHEN 'Lost'               THEN 'K.LOST'
+        ELSE                           'Z.UNCLASSIFIED'
     END AS segment_label,
-    CASE
-        WHEN c.rfm_segment IN ('Champions', 'Loyal Customers', 'Potential Loyalist')
-            THEN 'A.LOYAL'
-        WHEN c.rfm_segment IN ('Recent Customers', 'Promising', 'Need Attention')
-            THEN 'B.PROMISING'
-        WHEN c.rfm_segment IN ('About to Sleep', 'At Risk', 'Cannot Lose Them')
-            THEN 'C.SLEEP'
-        WHEN c.rfm_segment IN ('Hibernating', 'Lost')
-            THEN 'D.LOST'
-    END AS macro_segment
+    -- Délègue à analytics.fn_rfm_macro (etl/00_functions.sql) pour
+    -- garantir la cohérence avec 06_history.sql.
+    analytics.fn_rfm_macro(c.rfm_segment) AS macro_segment
 FROM analytics.customer_rfm c;
 
 COMMENT ON VIEW analytics.customer_rfm_v IS

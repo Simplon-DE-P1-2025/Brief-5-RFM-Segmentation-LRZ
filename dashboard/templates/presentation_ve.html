@@ -1,0 +1,1071 @@
+{% extends "base.html" %}
+{% block title %}RFM — Présentation VE{% endblock %}
+
+{% block extra_css %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='js/reveal/reset.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='js/reveal/reveal.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='js/reveal/theme/white.css') }}">
+  <style>
+    :root {
+      --bg: #f3f6fb;
+      --bg-strong: #ffffff;
+      --ink: #172235;
+      --muted: #607089;
+      --line: #d9e2ee;
+      --blue: #3060a0;
+      --green: #2c7a4b;
+      --orange: #c95b27;
+      --violet: #6b4c9a;
+      --shadow: 0 18px 50px rgba(27, 39, 58, 0.08);
+    }
+
+    body > nav.navbar { display: none; }
+    body.bg-light, body { background: var(--bg) !important; }
+    .reveal-viewport {
+      background:
+        radial-gradient(circle at top right, rgba(48, 96, 160, 0.10), transparent 26%),
+        radial-gradient(circle at bottom left, rgba(44, 122, 75, 0.08), transparent 24%),
+        linear-gradient(180deg, #f8fafd 0%, #eef3f8 100%) !important;
+    }
+
+    .reveal {
+      color: var(--ink);
+      font-size: 34px;
+    }
+    .reveal .slides section {
+      text-align: left;
+      height: 100%;
+    }
+    .reveal h1, .reveal h2, .reveal h3 {
+      color: var(--ink);
+      text-transform: none;
+      letter-spacing: -0.02em;
+      margin-bottom: 0.35em;
+    }
+    .reveal h1 { font-size: 2.1em; font-weight: 800; }
+    .reveal h2 {
+      font-size: 1.75em;
+      font-weight: 800;
+      color: var(--ink);
+      position: relative;
+      padding-bottom: 0.32em;
+      margin-bottom: 0.55em;
+    }
+    .reveal h2::after {
+      content: '';
+      position: absolute;
+      left: 0;
+      bottom: 0;
+      width: 3.2rem;
+      height: 4px;
+      background: var(--blue);
+      border-radius: 99px;
+    }
+    .reveal h3 { font-size: 1.05em; font-weight: 700; }
+    .reveal p, .reveal li { color: var(--ink); }
+    .reveal code {
+      color: var(--blue);
+      background: rgba(48, 96, 160, 0.08);
+      padding: 0.08em 0.28em;
+      border-radius: 0.25em;
+    }
+
+    .eyebrow {
+      display: inline-block;
+      font-size: 0.42em;
+      text-transform: uppercase;
+      letter-spacing: 0.14em;
+      color: var(--blue);
+      background: rgba(48, 96, 160, 0.10);
+      border: 1px solid rgba(48, 96, 160, 0.16);
+      border-radius: 999px;
+      padding: 0.35em 0.9em;
+      margin-bottom: 1em;
+    }
+    .lede {
+      max-width: 18ch;
+      font-size: 1.15em;
+      line-height: 1.12;
+      font-weight: 600;
+      margin: 0 0 0.45em 0;
+    }
+    .sublede {
+      max-width: 36ch;
+      font-size: 0.54em;
+      line-height: 1.45;
+      color: var(--muted);
+      margin: 0 0 1.3em 0;
+    }
+    .note {
+      font-size: 0.43em;
+      line-height: 1.45;
+      color: var(--muted);
+      margin-top: 0.9em;
+    }
+    .accent-blue { color: var(--blue); }
+    .accent-green { color: var(--green); }
+    .accent-orange { color: var(--orange); }
+    .accent-violet { color: var(--violet); }
+
+    .hero-grid,
+    .kpi-strip,
+    .arch-grid,
+    .step-grid,
+    .choice-grid,
+    .summary-grid,
+    .mini-grid {
+      display: grid;
+      gap: 0.8rem;
+    }
+    .hero-grid { grid-template-columns: repeat(3, 1fr); margin-top: 1.4rem; }
+    .kpi-strip { grid-template-columns: repeat(4, 1fr); margin: 0.8rem 0 1rem 0; }
+    .arch-grid { grid-template-columns: repeat(2, 1fr); }
+    .step-grid { grid-template-columns: repeat(4, 1fr); margin-top: 1.1rem; }
+    .choice-grid { grid-template-columns: repeat(2, 1fr); margin-top: 1rem; }
+    .summary-grid { grid-template-columns: repeat(3, 1fr); margin-top: 1.1rem; }
+    .mini-grid { grid-template-columns: repeat(2, 1fr); margin-top: 0.8rem; }
+
+    .panel,
+    .stat-card,
+    .step-card,
+    .choice-card,
+    .summary-card,
+    .arch-card,
+    .explain-card,
+    .demo-card {
+      background: rgba(255, 255, 255, 0.94);
+      border: 1px solid var(--line);
+      border-radius: 24px;
+      box-shadow: var(--shadow);
+    }
+
+    .panel {
+      padding: 1rem 1.1rem;
+    }
+    .stat-card,
+    .summary-card,
+    .arch-card,
+    .explain-card {
+      padding: 0.8rem 0.95rem;
+    }
+    .step-card,
+    .choice-card,
+    .demo-card {
+      padding: 0.9rem 1rem;
+    }
+
+    .card-kicker {
+      font-size: 0.34em;
+      text-transform: uppercase;
+      letter-spacing: 0.10em;
+      color: var(--muted);
+      margin-bottom: 0.55em;
+    }
+    .card-title {
+      font-size: 0.62em;
+      font-weight: 700;
+      color: var(--ink);
+      margin-bottom: 0.35em;
+    }
+    .card-copy {
+      font-size: 0.42em;
+      line-height: 1.45;
+      color: var(--muted);
+      margin: 0;
+    }
+    .stat-value {
+      font-size: 1.1em;
+      font-weight: 700;
+      color: var(--blue);
+      margin-bottom: 0.08em;
+    }
+    .stat-label {
+      font-size: 0.36em;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+    }
+
+    .arch-shell {
+      display: grid;
+      grid-template-columns: 0.9fr auto 2fr auto 0.95fr;
+      gap: 1rem;
+      align-items: center;
+      margin-top: 1.1rem;
+    }
+    .arch-stack {
+      display: flex;
+      flex-direction: column;
+      gap: 0.6rem;
+    }
+    .arch-card strong {
+      display: block;
+      font-size: 0.62em;
+      margin-bottom: 0.3em;
+    }
+    .arch-card span {
+      display: block;
+      font-size: 0.42em;
+      line-height: 1.45;
+      color: var(--muted);
+    }
+    /* Source et Restitution : hors du Docker Compose, traitement visuel
+       différencié pour qu'on voie qu'elles ne sont pas des services. */
+    .arch-card.edge {
+      background: transparent;
+      border: 2px dashed var(--line);
+      box-shadow: none;
+    }
+    .arch-compose {
+      padding: 0.9rem 1rem;
+      border: 1px solid rgba(48, 96, 160, 0.18);
+      border-radius: 26px;
+      background: rgba(48, 96, 160, 0.05);
+    }
+    .arch-compose .shell-label {
+      display: inline-block;
+      font-size: 0.34em;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--blue);
+      margin-bottom: 0.8rem;
+    }
+    .arch-arrow {
+      font-size: 1.2em;
+      color: var(--blue);
+      text-align: center;
+    }
+
+    .step-number {
+      width: 1.8rem;
+      height: 1.8rem;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 999px;
+      background: rgba(48, 96, 160, 0.10);
+      color: var(--blue);
+      font-size: 0.48em;
+      font-weight: 700;
+      margin-bottom: 0.65rem;
+    }
+    .step-card .card-copy,
+    .choice-card .card-copy,
+    .summary-card .card-copy {
+      font-size: 0.40em;
+    }
+
+    .chart-slide {
+      width: 100%;
+      height: 380px;
+      max-height: 380px;
+      margin-top: 0.4rem;
+      background: rgba(255, 255, 255, 0.92);
+      border: 1px solid var(--line);
+      border-radius: 24px;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+    .chart-slide .svg-container {
+      border-radius: 24px;
+      overflow: hidden;
+    }
+    .chart-slide text.gtitle,
+    .chart-slide text.xtitle,
+    .chart-slide text.ytitle,
+    .chart-slide text.legendtext,
+    .chart-slide text.legendtitletext,
+    .chart-slide text.annotation-text,
+    .chart-slide .cbtitle text,
+    .chart-slide .xtick text,
+    .chart-slide .ytick text {
+      fill: var(--ink) !important;
+      stroke: none !important;
+      filter: drop-shadow(0 1px 0 rgba(255, 255, 255, 0.72));
+    }
+    .chart-slide text.gtitle,
+    .chart-slide text.xtitle,
+    .chart-slide text.ytitle,
+    .chart-slide text.legendtitletext,
+    .chart-slide text.annotation-text {
+      font-weight: 700;
+      letter-spacing: 0.01em;
+    }
+    .chart-slide .pointtext text,
+    .chart-slide .textpoint text,
+    .chart-slide .bartext text {
+      paint-order: stroke fill;
+      stroke: rgba(255, 255, 255, 0.96);
+      stroke-width: 4px;
+      stroke-linejoin: round;
+      filter: drop-shadow(0 2px 6px rgba(23, 34, 53, 0.14));
+    }
+    /* Heatmap : halo SOMBRE + texte blanc forcé.
+       Avec un halo blanc, les chiffres devenaient invisibles sur les
+       cellules très claires (R1/F1, R1/F2) et ressemblaient à des blobs
+       sur les cellules très foncées (R5/F5). Halo sombre = lisible
+       dans les deux extrêmes. */
+    .chart-slide .hm text,
+    .chart-slide g.hm text {
+      paint-order: stroke fill;
+      stroke: rgba(15, 26, 50, 0.92) !important;
+      stroke-width: 3.5px !important;
+      stroke-linejoin: round;
+      fill: #ffffff !important;
+      font-weight: 800 !important;
+      font-size: 16px !important;
+    }
+    .chart-slide .textpoint text,
+    .chart-slide .pointtext text,
+    .chart-slide .bartext text {
+      font-weight: 700;
+      letter-spacing: 0.01em;
+    }
+    .chart-layout {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 1rem;
+      align-items: start;
+      margin-top: 0.7rem;
+    }
+
+    .demo-layout {
+      display: grid;
+      grid-template-columns: 0.95fr 1.25fr;
+      gap: 1rem;
+      margin-top: 1rem;
+      align-items: center;
+    }
+    .demo-card {
+      min-height: 290px;
+    }
+    .demo-copy {
+      font-size: 0.45em;
+      line-height: 1.45;
+      color: var(--muted);
+      margin: 0 0 0.9rem 0;
+    }
+    .demo-action {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0.8rem 1.15rem;
+      font-size: 0.48em;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      border-radius: 16px;
+      border: none;
+      background: var(--blue);
+      color: #fff;
+      cursor: pointer;
+    }
+    .demo-action:hover { background: #244b7d; }
+    .demo-action:disabled { background: #a3afc2; cursor: not-allowed; }
+    .status-line {
+      margin-top: 0.8rem;
+      font-size: 0.42em;
+      color: var(--muted);
+    }
+    .run-header {
+      font-size: 0.45em;
+      color: var(--muted);
+      margin-bottom: 0.7rem;
+    }
+    .task-row {
+      display: grid;
+      grid-template-columns: 1fr auto auto;
+      gap: 0.55rem;
+      align-items: center;
+      padding: 0.5rem 0;
+      border-bottom: 1px solid #edf1f6;
+      font-size: 0.4em;
+    }
+    .task-row:last-child { border-bottom: none; }
+    .state {
+      display: inline-block;
+      border-radius: 999px;
+      padding: 0.15em 0.6em;
+      font-size: 0.9em;
+      font-weight: 700;
+      background: #eef2f8;
+      color: var(--muted);
+    }
+    .state.success { background: rgba(44, 122, 75, 0.14); color: var(--green); }
+    .state.running { background: rgba(48, 96, 160, 0.14); color: var(--blue); }
+    .state.failed,
+    .state.upstream_failed { background: rgba(201, 91, 39, 0.14); color: var(--orange); }
+    .state.queued,
+    .state.scheduled { background: rgba(107, 76, 154, 0.14); color: var(--violet); }
+
+    .quote-band {
+      margin-top: 1rem;
+      padding: 0.8rem 1rem;
+      border-left: 5px solid var(--blue);
+      background: rgba(255, 255, 255, 0.80);
+      border-radius: 18px;
+      font-size: 0.46em;
+      line-height: 1.5;
+      color: var(--ink);
+      box-shadow: var(--shadow);
+    }
+
+    .closing {
+      display: grid;
+      grid-template-columns: 1.3fr 1fr;
+      gap: 1.1rem;
+      align-items: start;
+      margin-top: 1rem;
+    }
+    .closing .lede { max-width: 16ch; }
+
+    /* ─── Team strip (slide 1) ────────────────────────────────────── */
+    .team-strip {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      margin: 1.4rem 0 1.6rem 0;
+      flex-wrap: wrap;
+    }
+    .team-strip .team-label {
+      font-size: 0.42em;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--muted);
+      font-weight: 700;
+      margin-right: 0.4rem;
+    }
+    .team-strip .team-chip {
+      display: inline-block;
+      padding: 0.42rem 0.95rem;
+      background: var(--bg-strong);
+      color: var(--ink);
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      font-size: 0.46em;
+      font-weight: 600;
+      box-shadow: var(--shadow);
+    }
+
+
+    /* ─── Waterfall des volumétries (slide 4) ─────────────────────── */
+    .waterfall {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr auto 1fr auto 1fr;
+      align-items: center;
+      gap: 0.8rem;
+      margin: 0.6rem 0 1rem 0;
+      padding: 1.1rem 1.3rem;
+      background: var(--bg-strong);
+      border: 1px solid var(--line);
+      border-radius: 22px;
+      box-shadow: var(--shadow);
+    }
+    .waterfall .wf-step { text-align: center; min-width: 0; }
+    .waterfall .wf-num {
+      font-size: 1.05em;
+      font-weight: 800;
+      color: var(--blue);
+      letter-spacing: -0.02em;
+      line-height: 1;
+      font-variant-numeric: tabular-nums;
+    }
+    .waterfall .wf-lbl {
+      font-size: 0.30em;
+      text-transform: uppercase;
+      letter-spacing: 0.10em;
+      color: var(--muted);
+      margin-top: 0.55em;
+      font-weight: 700;
+    }
+    .waterfall .wf-arrow {
+      color: rgba(48, 96, 160, 0.55);
+      font-size: 1.0em;
+      font-weight: 400;
+      line-height: 1;
+    }
+
+    /* ─── Punchline (slide 9 — closing) ──────────────────────────── */
+    .punchline {
+      margin-top: 1.4rem;
+      padding: 2.2rem 1.5rem;
+      background: var(--bg-strong);
+      border: 1px solid var(--line);
+      border-radius: 28px;
+      box-shadow: var(--shadow);
+      text-align: center;
+    }
+    .punchline-numbers {
+      display: flex;
+      justify-content: center;
+      align-items: baseline;
+      gap: 0.55em;
+      flex-wrap: nowrap;
+      font-size: 1.15em;
+      font-weight: 800;
+      color: var(--ink);
+      letter-spacing: -0.02em;
+      line-height: 1.15;
+      white-space: nowrap;
+    }
+    .punchline-numbers .accent { color: var(--blue); }
+    .punchline-numbers .sep {
+      color: rgba(48, 96, 160, 0.32);
+      font-weight: 400;
+      font-size: 0.85em;
+    }
+    .punchline-promise {
+      display: block;
+      max-width: 30ch;
+      margin: 1.2rem auto 0 auto;
+      font-family: 'Lora', serif;
+      font-style: italic;
+      font-size: 0.62em;
+      line-height: 1.4;
+      color: var(--muted);
+    }
+
+    .align-center {
+      text-align: center;
+    }
+
+    .deck-meta {
+      position: fixed;
+      left: 24px;
+      right: 24px;
+      bottom: 18px;
+      z-index: 35;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      pointer-events: none;
+    }
+    .deck-meta .team,
+    .deck-meta .page {
+      display: inline-flex;
+      align-items: center;
+      min-height: 42px;
+      padding: 0.45rem 0.8rem;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.85);
+      border: 1px solid rgba(217, 226, 238, 0.95);
+      box-shadow: var(--shadow);
+      font-size: 0.78rem;
+      color: var(--muted);
+      backdrop-filter: blur(8px);
+    }
+    .deck-meta .page {
+      font-weight: 700;
+      color: var(--blue);
+      min-width: 92px;
+      justify-content: center;
+    }
+  </style>
+{% endblock %}
+
+{% block content %}
+<div class="deck-meta">
+  <span class="team">Équipe : Zoubir, Lounès, Ahmed, Romain</span>
+  <span id="deckPage" class="page">01 / 09</span>
+</div>
+
+<div class="reveal">
+  <div class="slides">
+
+    <section>
+      <div class="eyebrow">Présentation finale · 10 à 15 min</div>
+      <div class="team-strip">
+        <span class="team-label">Équipe</span>
+        <span class="team-chip">Zoubir</span>
+        <span class="team-chip">Lounès</span>
+        <span class="team-chip">Ahmed</span>
+        <span class="team-chip">Romain</span>
+      </div>
+      <p class="lede">Segmenter des clients avec un pipeline RFM reproductible.</p>
+      <p class="sublede">De la source brute au dashboard final.</p>
+      <div class="hero-grid">
+        <div class="panel">
+          <div class="card-kicker">Démonstration</div>
+          <div class="card-title">Docker, Airflow, dashboard</div>
+        </div>
+        <div class="panel">
+          <div class="card-kicker">Explication</div>
+          <div class="card-title">Un pipeline en 4 tâches</div>
+        </div>
+        <div class="panel">
+          <div class="card-kicker">Justification</div>
+          <div class="card-title">Des choix techniques défendus</div>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <div class="eyebrow">1. Résultat</div>
+      <h2>Ce que le projet produit vraiment</h2>
+      <div class="kpi-strip">
+        <div class="stat-card">
+          <div class="stat-value">{{ "{:,}".format(kpi_bar.total_users).replace(",", " ") }}</div>
+          <div class="stat-label">Clients scorés</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value">{{ "{:,}".format(kpi_bar.total_transactions).replace(",", " ") }}</div>
+          <div class="stat-label">Transactions</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value">£{{ "{:,.0f}".format(kpi_bar.total_net_revenue).replace(",", " ") }}</div>
+          <div class="stat-label">CA total</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value">{{ kpi_bar.pct_churned }}%</div>
+          <div class="stat-label">Clients churnés</div>
+        </div>
+      </div>
+      <div id="bubble-slide" class="chart-slide"></div>
+    </section>
+
+    <section>
+      <div class="eyebrow">2. Docker</div>
+      <h2>Architecture du projet</h2>
+      <div class="arch-shell">
+        <div class="arch-stack">
+          <div class="arch-card edge">
+            <strong>Source</strong>
+            <span><code>online_retail_II.xlsx</code></span>
+          </div>
+        </div>
+
+        <div class="arch-arrow">→</div>
+
+        <div class="arch-compose">
+          <div class="shell-label">docker compose</div>
+          <div class="arch-grid">
+            <div class="arch-card"><strong>Airflow</strong></div>
+            <div class="arch-card"><strong>Postgres</strong></div>
+            <div class="arch-card"><strong>Runtime ETL</strong></div>
+            <div class="arch-card"><strong>Dashboard Flask</strong></div>
+          </div>
+        </div>
+
+        <div class="arch-arrow">→</div>
+
+        <div class="arch-stack">
+          <div class="arch-card edge">
+            <strong>Restitution</strong>
+            <span>Dashboard + soutenance</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <div class="eyebrow">3. Pipeline</div>
+      <h2>Fonctionnement du pipeline en 4 tâches</h2>
+      <div class="waterfall">
+        <div class="wf-step">
+          <div class="wf-num">1 067 371</div>
+          <div class="wf-lbl">Lignes brutes</div>
+        </div>
+        <div class="wf-arrow">→</div>
+        <div class="wf-step">
+          <div class="wf-num">802 637</div>
+          <div class="wf-lbl">Ventes propres</div>
+        </div>
+        <div class="wf-arrow">→</div>
+        <div class="wf-step">
+          <div class="wf-num">5 852</div>
+          <div class="wf-lbl">Clients RFM</div>
+        </div>
+        <div class="wf-arrow">→</div>
+        <div class="wf-step">
+          <div class="wf-num">{{ "{:,}".format(history.total_rows).replace(",", " ") }}</div>
+          <div class="wf-lbl">Lignes historisées</div>
+        </div>
+      </div>
+      <div class="step-grid">
+        <div class="step-card">
+          <div class="step-number">1</div>
+          <div class="card-title"><code>ingest_xlsx</code></div>
+          <p class="card-copy">
+            Lecture du fichier Excel puis chargement en base dans la couche <code>raw</code>.
+          </p>
+        </div>
+        <div class="step-card">
+          <div class="step-number">2</div>
+          <div class="card-title"><code>transform_clean_rfm</code></div>
+          <p class="card-copy">
+            Nettoyage des lignes puis calcul de <code>recency</code>, <code>frequency</code> et <code>monetary</code>.
+          </p>
+        </div>
+        <div class="step-card">
+          <div class="step-number">3</div>
+          <div class="card-title"><code>load_segments</code></div>
+          <p class="card-copy">
+            Traduction des scores RFM en
+            11 segments business lisibles.
+          </p>
+        </div>
+        <div class="step-card">
+          <div class="step-number">4</div>
+          <div class="card-title"><code>compute_rfm_history</code></div>
+          <p class="card-copy">
+            Snapshot mensuel pour suivre
+            l'évolution de la base dans le temps.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <div class="eyebrow">4. Choix techniques</div>
+      <h2>Des choix techniques au service de la fiabilité</h2>
+      <div class="choice-grid">
+        <div class="choice-card">
+          <div class="card-kicker">Reproductibilité</div>
+          <div class="card-title">Docker Compose</div>
+          <p class="card-copy">
+            <code>docker compose up -d</code><br>→ stack complète, zéro install système.
+          </p>
+        </div>
+        <div class="choice-card">
+          <div class="card-kicker">Fiabilité des données</div>
+          <div class="card-title">Postgres-first</div>
+          <p class="card-copy">
+            <code>customer_id INTEGER NULL</code><br>→ pandas ne casse plus le typage.
+          </p>
+        </div>
+        <div class="choice-card">
+          <div class="card-kicker">Reruns sûrs</div>
+          <div class="card-title">Idempotence partout</div>
+          <p class="card-copy">
+            <code>TRUNCATE</code> en début de tâche<br>→ DAG rejouable cent fois sans doublon.
+          </p>
+        </div>
+        <div class="choice-card">
+          <div class="card-kicker">Lisibilité</div>
+          <div class="card-title">Python + SQL séparés</div>
+          <p class="card-copy">
+            Python orchestre, SQL transforme<br>→ logique métier en clair dans <code>03_rfm.sql</code>.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <div class="eyebrow">5. Lecture du RFM</div>
+      <h2>Comment lire le scoring RFM</h2>
+      <div class="chart-layout">
+        <div>
+          <div id="heatmap-slide" class="chart-slide" style="height: 500px;"></div>
+        </div>
+        <div class="arch-stack">
+          <div class="explain-card">
+            <div class="card-kicker">Recency</div>
+            <div class="card-title">Le score R est inversé</div>
+            <p class="card-copy">
+              <code>6 - NTILE(5)</code> → 5 = très récent.
+            </p>
+          </div>
+          <div class="explain-card">
+            <div class="card-kicker">Lecture</div>
+            <div class="card-title">Densité brute</div>
+            <p class="card-copy">
+              Avant même de parler des labels business.
+            </p>
+          </div>
+          <div class="explain-card">
+            <div class="card-kicker">Interprétation</div>
+            <div class="card-title">Haut-droite = forte valeur</div>
+            <p class="card-copy">
+              Récent + fréquent = relation à entretenir.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section data-live-demo="true">
+      <div class="eyebrow">6. Airflow</div>
+      <h2>Exécution du DAG en direct</h2>
+      <div class="demo-layout">
+        <div class="demo-card">
+          <div class="card-kicker">Déclenchement</div>
+          <div class="card-title">Trigger du DAG</div>
+          <button id="btnTriggerVe" class="demo-action">Trigger DAG</button>
+          <div id="afHealthVe" class="status-line">Vérification d'Airflow...</div>
+          <div class="status-line">
+            UI : <a href="{{ airflow_url }}" target="_blank" class="accent-blue">{{ airflow_url }}</a>
+          </div>
+        </div>
+        <div class="demo-card">
+          <div class="card-kicker">Exécution</div>
+          <div id="runHeaderVe" class="run-header">Aucun run récupéré</div>
+          <div id="taskListVe"></div>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <div class="eyebrow">7. Valeur ajoutée</div>
+      <h2>Suivi temporel des segments</h2>
+      <div class="mini-grid">
+        <div class="stat-card">
+          <div class="stat-value">{{ history.n_snapshots }}</div>
+          <div class="stat-label">Snapshots mensuels</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value">{{ "{:,}".format(history.total_rows).replace(",", " ") }}</div>
+          <div class="stat-label">Lignes historisées</div>
+        </div>
+      </div>
+      <div id="movements-slide" class="chart-slide"></div>
+    </section>
+
+    <section>
+      <div class="eyebrow">8. Conclusion</div>
+      <h2>Ce qu'on a construit</h2>
+      <div class="punchline">
+        <div class="punchline-numbers">
+          <span>Un Excel.</span>
+          <span class="sep">·</span>
+          <span><span class="accent">8</span> services.</span>
+          <span class="sep">·</span>
+          <span><span class="accent">4</span> tasks.</span>
+          <span class="sep">·</span>
+          <span><span class="accent">5 852</span> clients.</span>
+          <span class="sep">·</span>
+          <span>Un dashboard.</span>
+        </div>
+      </div>
+      <div class="quote-band align-center">
+        Questions ?
+      </div>
+      <p style="text-align: center; margin-top: 1.4rem;">
+        <a href="/" style="display: inline-block; padding: 0.55rem 1.2rem; background: #ffffff; color: #3060a0; border: 1px solid #d9e2ee; border-radius: 0.45rem; font-size: 0.5em; text-decoration: none; letter-spacing: 0.04em; box-shadow: 0 4px 14px rgba(27, 39, 58, 0.06);">
+          ← Retour au dashboard
+        </a>
+      </p>
+    </section>
+
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+  <script src="{{ url_for('static', filename='js/reveal/reveal.js') }}"></script>
+  <script>
+    Reveal.initialize({
+      hash: true,
+      controls: true,
+      progress: true,
+      slideNumber: false,
+      width: 1280,
+      height: 720,
+      margin: 0.06,
+      transition: 'slide'
+    });
+
+    var bubble = {{ bubble_fig | safe }};
+    var heatmap = {{ heatmap_fig | safe }};
+    var movements = {{ movements_pct_fig | safe }};
+    var ink = '#172235';
+    var tick = '#607089';
+    var cfg = {
+      responsive: true,
+      displaylogo: false,
+      modeBarButtonsToRemove: ['lasso2d', 'select2d']
+    };
+
+    function themeFigure(fig) {
+      if (!fig.layout) fig.layout = {};
+
+      fig.layout.font = Object.assign({}, fig.layout.font || {}, { color: ink });
+      fig.layout.legend = Object.assign({}, fig.layout.legend || {}, {
+        font: Object.assign({}, (fig.layout.legend || {}).font || {}, { color: ink }),
+        title: Object.assign({}, (fig.layout.legend || {}).title || {}, {
+          font: Object.assign({}, ((fig.layout.legend || {}).title || {}).font || {}, { color: ink })
+        })
+      });
+
+      ['xaxis', 'yaxis'].forEach(function(axisKey) {
+        if (!fig.layout[axisKey]) return;
+        fig.layout[axisKey].tickfont = Object.assign({}, fig.layout[axisKey].tickfont || {}, { color: tick });
+        fig.layout[axisKey].title = Object.assign({}, fig.layout[axisKey].title || {}, {
+          font: Object.assign({}, (fig.layout[axisKey].title || {}).font || {}, { color: ink })
+        });
+      });
+
+      if (fig.layout.coloraxis && fig.layout.coloraxis.colorbar) {
+        fig.layout.coloraxis.colorbar.tickfont = Object.assign(
+          {},
+          fig.layout.coloraxis.colorbar.tickfont || {},
+          { color: tick }
+        );
+        fig.layout.coloraxis.colorbar.title = Object.assign(
+          {},
+          fig.layout.coloraxis.colorbar.title || {},
+          {
+            font: Object.assign(
+              {},
+              (fig.layout.coloraxis.colorbar.title || {}).font || {},
+              { color: ink }
+            )
+          }
+        );
+      }
+
+      if (Array.isArray(fig.layout.annotations)) {
+        fig.layout.annotations = fig.layout.annotations.map(function(annotation) {
+          return Object.assign({}, annotation, {
+            font: Object.assign({}, annotation.font || {}, { color: ink })
+          });
+        });
+      }
+
+      return fig;
+    }
+
+    Reveal.on('ready', function() {
+      bubble = themeFigure(bubble);
+      heatmap = themeFigure(heatmap);
+      movements = themeFigure(movements);
+
+      Plotly.newPlot('bubble-slide', bubble.data, bubble.layout, cfg);
+      Plotly.newPlot('heatmap-slide', heatmap.data, heatmap.layout, cfg);
+      Plotly.newPlot('movements-slide', movements.data, movements.layout, cfg);
+
+      var btn = document.getElementById('btnTriggerVe');
+      if (btn) btn.addEventListener('click', triggerDagVe);
+      checkHealthVe();
+      updateDeckPage();
+    });
+
+    Reveal.on('slidechanged', function() {
+      ['bubble-slide', 'heatmap-slide', 'movements-slide'].forEach(function(id) {
+        var el = document.getElementById(id);
+        if (el && el.data) Plotly.Plots.resize(el);
+      });
+
+      updateDeckPage();
+
+      var current = Reveal.getCurrentSlide();
+      if (current && current.dataset.liveDemo === 'true') {
+        checkHealthVe();
+      } else if (pollHandleVe) {
+        clearInterval(pollHandleVe);
+        pollHandleVe = null;
+      }
+    });
+
+    var pollHandleVe = null;
+
+    function updateDeckPage() {
+      var page = document.getElementById('deckPage');
+      if (!page) return;
+
+      var total = document.querySelectorAll('.reveal .slides > section').length;
+      var current = Reveal.getIndices().h + 1;
+      page.textContent = String(current).padStart(2, '0') + ' / ' + String(total).padStart(2, '0');
+    }
+
+    function setButtonVe(enabled, label) {
+      var btn = document.getElementById('btnTriggerVe');
+      if (!btn) return;
+      btn.disabled = !enabled;
+      btn.textContent = label;
+    }
+
+    async function checkHealthVe() {
+      var elem = document.getElementById('afHealthVe');
+      try {
+        var r = await fetch('/api/airflow/health');
+        var j = await r.json();
+        if (j.ok) {
+          if (elem) {
+            elem.textContent = 'Airflow disponible - scheduler ' + j.scheduler;
+            elem.style.color = '#2c7a4b';
+          }
+          setButtonVe(true, 'Trigger DAG');
+          return true;
+        }
+      } catch (e) {}
+
+      if (elem) {
+        elem.textContent = 'Demo offline - Airflow non disponible';
+        elem.style.color = '#c95b27';
+      }
+      setButtonVe(false, 'Trigger DAG indisponible');
+      return false;
+    }
+
+    function renderPanelVe(data) {
+      var header = document.getElementById('runHeaderVe');
+      var list = document.getElementById('taskListVe');
+      if (!header || !list) return;
+
+      if (!data.run) {
+        header.textContent = 'Aucun run recupere';
+        list.innerHTML = '';
+        return;
+      }
+
+      var run = data.run;
+      header.innerHTML = '<strong>' + run.dag_run_id + '</strong>'
+        + ' - <span class="state ' + (run.state || 'none') + '">' + (run.state || '?') + '</span>'
+        + (run.start_date ? '<br><span style="font-size:0.9em;">' + run.start_date + '</span>' : '');
+
+      var html = '';
+      data.tasks.forEach(function(task) {
+        var dur = task.duration ? Math.round(task.duration) + ' s' : '...';
+        html += '<div class="task-row">'
+          + '<span><code>' + task.task_id + '</code></span>'
+          + '<span>' + dur + '</span>'
+          + '<span class="state ' + (task.state || 'none') + '">' + (task.state || '?') + '</span>'
+          + '</div>';
+      });
+      list.innerHTML = html;
+    }
+
+    async function pollLatestRunVe() {
+      try {
+        var r = await fetch('/api/airflow/runs/latest');
+        var j = await r.json();
+        renderPanelVe(j);
+        if (j.run && (j.run.state === 'success' || j.run.state === 'failed')) {
+          if (pollHandleVe) {
+            setTimeout(function() {
+              if (pollHandleVe) {
+                clearInterval(pollHandleVe);
+                pollHandleVe = null;
+              }
+            }, 5000);
+          }
+        }
+      } catch (e) {}
+    }
+
+    async function triggerDagVe() {
+      var ok = await checkHealthVe();
+      if (!ok) return;
+
+      setButtonVe(false, 'Trigger en cours...');
+
+      try {
+        var r = await fetch('/api/airflow/trigger', { method: 'POST' });
+        var j = await r.json();
+
+        if (j.ok) {
+          setButtonVe(false, 'DAG declenche');
+          if (pollHandleVe) clearInterval(pollHandleVe);
+          pollLatestRunVe();
+          pollHandleVe = setInterval(pollLatestRunVe, 3000);
+          setTimeout(function() {
+            setButtonVe(true, 'Relancer le DAG');
+          }, 30000);
+        } else {
+          setButtonVe(true, 'Erreur de trigger');
+        }
+      } catch (e) {
+        setButtonVe(true, 'Erreur de trigger');
+      }
+    }
+  </script>
+{% endblock %}
